@@ -5,57 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#000000">
-    <title>AMORY | سیستم جامع رزرو</title>
+    <title>AMORY | مدیریت جامع سالن</title>
     
-    <!-- کتابخانه‌ها -->
+    <!-- 1. کتابخانه‌ها -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- فایربیس -->
+    <!-- 2. فایربیس -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-    <!-- فونت‌ها و آیکون -->
+    <!-- 3. فونت‌ها و آیکون -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 
     <style>
-        body { 
-            font-family: 'Vazirmatn', sans-serif; 
-            color: #eee; 
-            overflow-x: hidden; 
-            margin: 0; 
-            background-color: #000;
-        }
-
-        #bg-layer {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-            background-size: cover; background-position: center;
-            transition: background-image 0.8s ease-in-out;
-            filter: brightness(0.3) blur(2px);
-        }
-
-        .glass { background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-        .glass-header { background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        body { font-family: 'Vazirmatn', sans-serif; color: #eee; overflow-x: hidden; margin: 0; background-color: #000; }
+        #bg-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-size: cover; background-position: center; transition: background-image 0.8s ease-in-out; filter: brightness(0.25) blur(3px); }
+        .glass { background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .glass-header { background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .glass-footer { background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.1); }
-
-        .btn-gold { background: linear-gradient(135deg, #D4AF37 0%, #AA8518 100%); color: black; font-weight: 800; padding: 14px; border-radius: 12px; width: 100%; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); transition: transform 0.2s; }
+        .btn-gold { background: linear-gradient(135deg, #D4AF37 0%, #AA8518 100%); color: black; font-weight: 800; padding: 12px; border-radius: 12px; width: 100%; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); transition: transform 0.2s; }
         .btn-gold:active { transform: scale(0.96); opacity: 0.9; }
         .input-box { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); padding: 12px; width: 100%; border-radius: 10px; outline: none; margin-bottom: 10px; text-align: center; color: white; transition: 0.3s; }
         .input-box:focus { border-color: #D4AF37; background: rgba(0,0,0,0.6); }
-
         .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #D4AF37; border-radius: 50%; animation: spin 1s infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        
         .digital-font { font-family: 'Courier New', monospace; letter-spacing: 1px; font-weight: bold; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .online { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
-        .error-box { border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.1); color: #fca5a5; padding: 15px; border-radius: 12px; text-align: center; }
+        .card-stat { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
@@ -63,7 +47,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- تنظیمات فایربیس ---
+        // --- 1. تنظیمات فایربیس ---
         const firebaseConfig = {
             apiKey: "AIzaSyC0O6xabLpdmh5_dGS-lJc-N_QqQ95_qCU",
             authDomain: "amory-da8ce.firebaseapp.com",
@@ -73,16 +57,14 @@
             appId: "1:253980572032:web:2c96ae935b276f05c92965"
         };
 
-        const APP_ID = "amory_salon_final_v12"; 
+        const APP_ID = "amory_erp_v1"; // دیتابیس جدید برای سیستم ERP
 
         let db = null, auth = null;
         try {
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             auth = firebase.auth();
-            // کش داخلی فایربیس را نگه می‌داریم تا اگر در حین کار نت قطع شد، برنامه کرش نکند
-            // اما دیتای اولیه حتما باید از سرور بیاید
-            db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+            db.settings({ experimentalForceLongPolling: true, merge: true });
         } catch (e) { console.warn("Firebase Init Error"); }
 
         const { useState, useEffect, useMemo } = React;
@@ -105,75 +87,65 @@
             return (<div className="text-right"><div className="text-lg font-bold text-white digital-font">{timeStr}</div><div className="text-[10px] text-[#D4AF37]">{dateStr}</div></div>);
         };
 
-        // --- مدیریت داده (فقط آنلاین) ---
+        // --- مدیریت داده (آنلاین مطلق) ---
         const useDataManager = () => {
-            const [status, setStatus] = useState('connecting'); // connecting, connected, error
+            const [status, setStatus] = useState('connecting'); 
             const [errorMsg, setErrorMsg] = useState('');
             const [data, setData] = useState({ 
-                staff: [], appointments: [], 
+                staff: [], appointments: [], expenses: [], inventory: [],
                 settings: { cardNum: "6037997123456789", cardOwner: "سالن زیبایی آموری" },
                 uiConfig: { font: 'font-vazir', color: '#eeeeee', fontSize: '16px' },
                 commissions: {}
             });
 
-            // آرایشگران پیش‌فرض برای سید کردن دیتابیس (فقط بار اول)
             const defaultStaff = [
-                { id: 's1', name: 'استاد سجاد (مدیر)', pin: '1111', img: '', services: [{name:'گریم داماد', price:3500000}], slots: [] },
-                { id: 's2', name: 'امیر', pin: '2222', img: '', services: [{name:'اصلاح کلاسیک', price:250000}], slots: [] },
+                { id: 's1', name: 'استاد سجاد', pin: '1111', img: '', services: [{name:'گریم', price:3500000}], slots: [] },
+                { id: 's2', name: 'امیر', pin: '2222', img: '', services: [{name:'اصلاح', price:200000}], slots: [] },
                 { id: 's3', name: 'آرش', pin: '3333', img: '', services: [{name:'سایه زنی', price:300000}], slots: [] }
             ];
 
             const connect = () => {
-                setStatus('connecting');
-                setErrorMsg('');
-                
-                auth.signInAnonymously()
-                    .then(() => {
-                        // اتصال موفق، شروع دریافت داده‌ها
-                        setStatus('connected');
-                        
-                        // لیسنرها
-                        db.collection('artifacts').doc(APP_ID).collection('staff').onSnapshot(snap => {
-                            if(snap.empty) defaultStaff.forEach(s => db.collection('artifacts').doc(APP_ID).collection('staff').doc(s.id).set(s));
-                            else setData(prev => ({ ...prev, staff: snap.docs.map(d => ({id:d.id, ...d.data()})) }));
+                setStatus('connecting'); setErrorMsg('');
+                auth.signInAnonymously().then(() => {
+                    setStatus('connected');
+                    // لود تمام کالکشن‌ها
+                    const loadCollection = (col, key) => {
+                        db.collection('artifacts').doc(APP_ID).collection(col).onSnapshot(snap => {
+                            if(col === 'staff' && snap.empty) defaultStaff.forEach(s => db.collection('artifacts').doc(APP_ID).collection('staff').doc(s.id).set(s));
+                            else setData(prev => ({ ...prev, [key]: snap.docs.map(d => ({id:d.id, ...d.data()})) }));
                         });
-                        
-                        db.collection('artifacts').doc(APP_ID).collection('appointments').onSnapshot(snap => {
-                            setData(prev => ({ ...prev, appointments: snap.docs.map(d => ({id:d.id, ...d.data()})) }));
-                        });
+                    };
+                    loadCollection('staff', 'staff');
+                    loadCollection('appointments', 'appointments');
+                    loadCollection('expenses', 'expenses'); // کالکشن جدید: هزینه‌ها
+                    loadCollection('inventory', 'inventory'); // کالکشن جدید: انبار
 
-                        db.collection('artifacts').doc(APP_ID).collection('config').onSnapshot(snap => {
-                            snap.docs.forEach(doc => {
-                                if(doc.id === 'payment') setData(prev => ({ ...prev, settings: doc.data() }));
-                                if(doc.id === 'ui') setData(prev => ({ ...prev, uiConfig: doc.data() }));
-                                if(doc.id === 'commissions') setData(prev => ({ ...prev, commissions: doc.data() }));
-                            });
+                    db.collection('artifacts').doc(APP_ID).collection('config').onSnapshot(snap => {
+                        snap.docs.forEach(doc => {
+                            if(doc.id === 'payment') setData(prev => ({ ...prev, settings: doc.data() }));
+                            if(doc.id === 'ui') setData(prev => ({ ...prev, uiConfig: doc.data() }));
+                            if(doc.id === 'commissions') setData(prev => ({ ...prev, commissions: doc.data() }));
                         });
-                    })
-                    .catch((error) => {
-                        console.error("Connection Error:", error);
-                        setStatus('error');
-                        setErrorMsg("خطا در اتصال به سرور. لطفاً فیلترشکن خود را بررسی کنید.");
                     });
+                }).catch(e => {
+                    console.error(e); setStatus('error'); setErrorMsg("خطا در اتصال به سرور. VPN را بررسی کنید.");
+                });
             };
 
-            useEffect(() => {
-                connect();
-                // چک کردن وضعیت احراز هویت
-                const unsub = auth.onAuthStateChanged(user => {
-                    if (!user && status !== 'error') connect();
-                });
-                return () => unsub();
-            }, []);
+            useEffect(() => { connect(); auth.onAuthStateChanged(user => { if (!user && status !== 'error') connect(); }); }, []);
 
             const actions = {
                 retry: connect,
-                addAppt: async (a) => db.collection('artifacts').doc(APP_ID).collection('appointments').add(a),
-                updateAppt: async (id, s) => db.collection('artifacts').doc(APP_ID).collection('appointments').doc(id).update(s),
-                updateStaff: async (id, d) => db.collection('artifacts').doc(APP_ID).collection('staff').doc(id).update(d),
+                addDoc: async (col, d) => db.collection('artifacts').doc(APP_ID).collection(col).add(d),
+                updateDoc: async (col, id, d) => db.collection('artifacts').doc(APP_ID).collection(col).doc(id).update(d),
+                deleteDoc: async (col, id) => db.collection('artifacts').doc(APP_ID).collection(col).doc(id).delete(),
                 setConfig: async (type, d) => db.collection('artifacts').doc(APP_ID).collection('config').doc(type).set(d),
-                addStaff: async (s) => db.collection('artifacts').doc(APP_ID).collection('staff').add(s),
-                deleteStaff: async (id) => db.collection('artifacts').doc(APP_ID).collection('staff').doc(id).delete()
+                
+                // توابع میانبر
+                addAppt: (d) => actions.addDoc('appointments', d),
+                updateStaff: (id, d) => actions.updateDoc('staff', id, d),
+                addExpense: (d) => actions.addDoc('expenses', d),
+                addItem: (d) => actions.addDoc('inventory', d),
             };
             return { status, errorMsg, data, actions };
         };
@@ -191,31 +163,15 @@
             }, [view]);
 
             useEffect(() => {
-                document.body.style.fontFamily = data.uiConfig.font === 'font-vazir' ? 'Vazirmatn' : 'Tahoma';
+                document.body.className = data.uiConfig.font;
                 document.body.style.color = data.uiConfig.color;
                 document.body.style.fontSize = data.uiConfig.fontSize;
             }, [data.uiConfig]);
 
             const showNotify = (msg, type='success') => { setNotify({msg, type}); setTimeout(() => setNotify(null), 3500); };
 
-            // صفحه لودینگ یا خطا
-            if (status === 'connecting') return (
-                <div className="h-screen flex flex-col items-center justify-center gap-4">
-                    <div className="spinner"></div>
-                    <span className="text-zinc-400 text-sm animate-pulse">در حال برقراری ارتباط امن...</span>
-                </div>
-            );
-
-            if (status === 'error') return (
-                <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
-                    <div className="glass p-8 border border-red-500/50">
-                        <i className="ri-wifi-off-line text-4xl text-red-500 mb-4 block"></i>
-                        <h3 className="text-xl font-bold text-white mb-2">عدم دسترسی به سرور</h3>
-                        <p className="text-zinc-400 text-sm mb-6">{errorMsg}</p>
-                        <button onClick={actions.retry} className="btn-gold">تلاش مجدد</button>
-                    </div>
-                </div>
-            );
+            if (status === 'connecting') return <div className="h-screen flex flex-col items-center justify-center gap-4"><div className="spinner"></div><span className="text-zinc-400 text-sm animate-pulse">اتصال به سیستم مرکزی...</span></div>;
+            if (status === 'error') return <div className="h-screen flex flex-col items-center justify-center p-6 text-center"><div className="glass p-8 border border-red-500/50"><i className="ri-wifi-off-line text-4xl text-red-500 mb-4 block"></i><h3 className="text-xl font-bold text-white mb-2">عدم دسترسی</h3><p className="text-zinc-400 text-sm mb-6">{errorMsg}</p><button onClick={actions.retry} className="btn-gold">تلاش مجدد</button></div></div>;
 
             return (
                 <div className="flex flex-col min-h-screen">
@@ -223,10 +179,7 @@
                         <div className="flex items-center gap-3 cursor-pointer" onClick={()=>setView('home')}>
                             <div className="text-left">
                                 <h1 className="text-xl font-black text-[#D4AF37] tracking-[0.2em] font-serif">AMORY</h1>
-                                <div className="text-[10px] text-zinc-400 flex items-center gap-1">
-                                    <span className="status-dot online"></span>
-                                    آنلاین
-                                </div>
+                                <div className="text-[10px] text-zinc-400 flex items-center gap-1"><span className="status-dot online"></span>آنلاین</div>
                             </div>
                         </div>
                         <HeaderClock />
@@ -236,8 +189,8 @@
                         {view === 'home' && <Home setView={setView} />}
                         {view === 'qr' && <QRView setView={setView} />}
                         {view === 'login' && <StaffLogin staffList={data.staff} setView={setView} showNotify={showNotify} />}
-                        {view === 'admin' && <AdminPanel staffList={data.staff} allAppts={data.appointments} commissions={data.commissions} actions={actions} setView={setView} showNotify={showNotify} />}
-                        {view === 'panel' && <StaffPanel allAppts={data.appointments} settings={data.settings} uiConfig={data.uiConfig} commissions={data.commissions} actions={actions} setView={setView} showNotify={showNotify} />}
+                        {view === 'admin' && <AdminPanel data={data} actions={actions} setView={setView} showNotify={showNotify} />}
+                        {view === 'panel' && <StaffPanel data={data} actions={actions} setView={setView} showNotify={showNotify} />}
                         {view === 'booking' && <BookingProcess staffList={data.staff} settings={data.settings} actions={actions} setView={setView} showNotify={showNotify} />}
                     </div>
 
@@ -247,7 +200,6 @@
             );
         }
 
-        // --- فوتر ---
         const Footer = () => (
             <div className="fixed bottom-0 left-0 w-full z-40 glass-footer p-4 backdrop-blur-md">
                 <div className="max-w-md mx-auto flex justify-between items-center px-2">
@@ -255,9 +207,7 @@
                         <p className="text-xs flex items-center gap-1"><i className="ri-map-pin-line text-[#D4AF37]"></i> تهران، صفادشت، م.نبی اکرم، بلوار الغدیر، <span className="font-bold text-white">ساختمان پردل</span></p>
                         <p className="text-[12px] opacity-80 mt-1 font-mono dir-ltr text-left font-bold text-[#D4AF37]">Tehran, Safadasht, Nabi Akram Sq, Pordel Building</p>
                     </div>
-                    <a href="tel:09100655071" className="bg-[#D4AF37] text-black w-10 h-10 rounded-full flex flex-col items-center justify-center shadow-lg shadow-yellow-500/20 text-lg hover:scale-110 transition shrink-0 ml-2">
-                        <i className="ri-phone-fill"></i>
-                    </a>
+                    <a href="tel:09100655071" className="bg-[#D4AF37] text-black w-10 h-10 rounded-full flex flex-col items-center justify-center shadow-lg shadow-yellow-500/20 text-lg hover:scale-110 transition shrink-0 ml-2"><i className="ri-phone-fill"></i></a>
                 </div>
             </div>
         );
@@ -269,28 +219,14 @@
                         <h2 className="text-3xl font-black mb-2 text-white drop-shadow-lg font-serif">AMORY CLUB</h2>
                         <p className="text-xs text-[#D4AF37] tracking-widest uppercase">The Art of Grooming</p>
                     </div>
-                    
-                    <button onClick={() => setView('booking')} className="glass w-full p-5 flex justify-between items-center group hover:bg-white/5 transition active:scale-95 border-r-4 border-r-[#D4AF37]">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white/10 p-3 rounded-full text-[#D4AF37]"><i className="ri-calendar-check-line text-2xl"></i></div>
-                            <div className="text-right"><div className="font-bold text-lg text-white">رزرو نوبت</div><div className="text-xs text-zinc-400">ورود مشتریان</div></div>
-                        </div>
-                        <i className="ri-arrow-left-s-line text-xl text-zinc-500"></i>
-                    </button>
-
-                    <button onClick={() => setView('login')} className="glass w-full p-5 flex justify-between items-center group hover:bg-white/5 transition active:scale-95 border-r-4 border-r-zinc-600">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white/10 p-3 rounded-full text-zinc-300"><i className="ri-user-settings-line text-2xl"></i></div>
-                            <div className="text-right"><div className="font-bold text-lg text-white">پنل مدیریت</div><div className="text-xs text-zinc-400">ورود پرسنل</div></div>
-                        </div>
-                        <i className="ri-arrow-left-s-line text-xl text-zinc-500"></i>
-                    </button>
-                    
+                    <button onClick={() => setView('booking')} className="glass w-full p-5 flex justify-between items-center group hover:bg-white/5 transition active:scale-95 border-r-4 border-r-[#D4AF37]"><div className="flex items-center gap-4"><div className="bg-white/10 p-3 rounded-full text-[#D4AF37]"><i className="ri-calendar-check-line text-2xl"></i></div><div className="text-right"><div className="font-bold text-lg text-white">رزرو نوبت</div><div className="text-xs text-zinc-400">ورود مشتریان</div></div></div><i className="ri-arrow-left-s-line text-xl text-zinc-500"></i></button>
+                    <button onClick={() => setView('login')} className="glass w-full p-5 flex justify-between items-center group hover:bg-white/5 transition active:scale-95 border-r-4 border-r-zinc-600"><div className="flex items-center gap-4"><div className="bg-white/10 p-3 rounded-full text-zinc-300"><i className="ri-shield-user-line text-2xl"></i></div><div className="text-right"><div className="font-bold text-lg text-white">پنل مدیریت</div><div className="text-xs text-zinc-400">ورود پرسنل / ادمین</div></div></div><i className="ri-arrow-left-s-line text-xl text-zinc-500"></i></button>
                     <button onClick={() => setView('qr')} className="w-full text-center text-xs text-zinc-500 hover:text-white mt-4">نمایش QR Code</button>
                 </div>
             );
         }
 
+        // --- بخش رزرو ---
         function BookingProcess({ staffList, settings, actions, setView, showNotify }) {
             const [step, setStep] = useState(1);
             const [data, setData] = useState({});
@@ -310,13 +246,7 @@
                 } catch(e) { showNotify('خطا', 'error'); setLoading(false); }
             };
 
-            if (success) return (
-                <div className="glass p-8 text-center mt-10 border border-green-500/40">
-                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl text-green-400"><i className="ri-check-line"></i></div>
-                    <h2 className="text-xl font-bold text-white mb-2">رزرو با موفقیت انجام شد</h2>
-                    <button onClick={() => setView('home')} className="btn-gold mt-6">بازگشت</button>
-                </div>
-            );
+            if (success) return <div className="glass p-8 text-center mt-10 border border-green-500/40"><div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl text-green-400"><i className="ri-check-line"></i></div><h2 className="text-xl font-bold text-white mb-2">رزرو با موفقیت انجام شد</h2><button onClick={() => setView('home')} className="btn-gold mt-6">بازگشت</button></div>;
 
             if(step===1) return <div className="space-y-4 fade-in"><div className="flex justify-between mb-4"><h3 className="text-[#D4AF37] font-bold">۱. انتخاب متخصص</h3><button onClick={()=>setView('home')} className="text-xs text-zinc-500">بازگشت</button></div>{staffList.map(s => (<div key={s.id} onClick={()=>{setData({...data, staffName: s.name, staffId: s.id}); setStep(2)}} className="glass p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 active:scale-95 transition"><div className="w-14 h-14 bg-zinc-800 rounded-full flex items-center justify-center text-xl font-bold text-[#D4AF37] border border-[#D4AF37] shadow-lg">{s.name[0]}</div><div><div className="font-bold text-lg text-white">{s.name}</div><div className="text-xs text-zinc-400">مشاهده خدمات</div></div></div>))}</div>;
             if(step===2) { const s = staffList.find(x=>x.id===data.staffId); return <div className="space-y-4 fade-in"><div onClick={()=>setStep(1)} className="text-xs mb-2 cursor-pointer text-zinc-500">بازگشت</div><h3 className="text-[#D4AF37] font-bold">۲. انتخاب خدمات</h3>{(s.services||[]).map((srv,i)=>(<div key={i} onClick={()=>{setData({...data, service: srv.name, price: srv.price}); setStep(3)}} className="glass p-4 flex justify-between cursor-pointer hover:bg-white/5 transition"><span className="font-bold text-sm text-white">{srv.name}</span><span className="text-[#D4AF37] font-mono">{formatMoney(srv.price)} ت</span></div>))}</div>; }
@@ -324,6 +254,7 @@
             if(step===4) return <div className="space-y-4 fade-in"><div onClick={()=>setStep(3)} className="text-xs mb-2 cursor-pointer text-zinc-500">بازگشت</div><div className="glass p-6 text-center border-t-4 border-t-[#D4AF37]"><p className="text-xs text-zinc-400">مبلغ قابل پرداخت</p><p className="text-3xl font-black text-[#D4AF37] mb-6 tracking-tight">{formatMoney(data.price)} <span className="text-xs font-normal">تومان</span></p><div className="bg-white/5 p-4 rounded-xl mb-6 text-sm border border-white/10 cursor-pointer hover:bg-white/10 transition" onClick={()=>{navigator.clipboard.writeText(settings.cardNum); showNotify('کپی شد')}}><p className="text-zinc-500 text-[10px] mb-2">شماره کارت (لمس برای کپی)</p><div className="font-mono text-xl tracking-widest text-white select-all dir-ltr">{settings.cardNum}</div><p className="text-[10px] text-zinc-400 mt-2">{settings.cardOwner}</p></div><div className="space-y-3"><input placeholder="نام و نام خانوادگی" className="input-box" onChange={e=>setData({...data, name: e.target.value})}/><input placeholder="شماره تماس" type="tel" className="input-box" onChange={e=>setData({...data, phone: e.target.value})}/><input placeholder="کد پیگیری تراکنش" className="input-box border border-[#D4AF37]/50" onChange={e=>setData({...data, trackId: e.target.value})}/></div></div><button onClick={submit} disabled={loading} className="btn-gold py-4">{loading ? 'در حال پردازش...' : 'تایید و ثبت نهایی'}</button></div>;
         }
 
+        // --- لاگین ---
         function StaffLogin({ staffList, setView, showNotify }) {
             const [pin, setPin] = useState('');
             const login = () => {
@@ -331,128 +262,138 @@
                 const s = staffList.find(x => x.pin === pin);
                 if(s) { localStorage.setItem('staff', JSON.stringify(s)); setView('panel'); } else showNotify('رمز اشتباه است', 'error');
             };
-            return <div className="h-[60vh] flex flex-col items-center justify-center gap-6 fade-in"><div className="glass p-8 w-full border border-white/5"><h2 className="text-xl font-bold text-center mb-6 text-white">ورود پرسنل</h2><input type="password" value={pin} onChange={e=>setPin(e.target.value)} className="input-box text-center text-xl tracking-widest bg-black/50" placeholder="PIN" /><button onClick={login} className="btn-gold mt-2">ورود به پنل</button><button onClick={()=>setView('home')} className="w-full text-center text-xs mt-6 text-zinc-500">بازگشت</button></div></div>;
+            return <div className="h-[60vh] flex flex-col items-center justify-center gap-6 fade-in"><div className="glass p-8 w-full border border-white/5"><h2 className="text-xl font-bold text-center mb-6 text-white">ورود پرسنل</h2><input type="password" value={pin} onChange={e=>setPin(e.target.value)} className="input-box text-center text-xl tracking-widest bg-black/50" placeholder="PIN" /><button onClick={login} className="btn-gold mt-2">ورود</button><button onClick={()=>setView('home')} className="w-full text-center text-xs mt-6 text-zinc-500">بازگشت</button></div></div>;
         }
 
-        function AdminPanel({ staffList, allAppts, commissions, actions, setView, showNotify }) {
-            const [newStaffName, setNewStaffName] = useState('');
-            const [newStaffPin, setNewStaffPin] = useState('');
+        // --- پنل مدیریت کل (Admin) ---
+        function AdminPanel({ data, actions, setView, showNotify }) {
             const [tab, setTab] = useState('staff');
-            const [commRates, setCommRates] = useState(commissions || {});
-            const [financeStart, setFinanceStart] = useState('');
-            const [financeEnd, setFinanceEnd] = useState('');
-            const [financeStaffId, setFinanceStaffId] = useState('all');
+            const [newStaff, setNewStaff] = useState({name:'', pin:''});
+            const [commRates, setCommRates] = useState(data.commissions || {});
+            const [filters, setFilters] = useState({start:'', end:'', staff:'all'});
+            const [newItem, setNewItem] = useState({name:'', qty:0, min:5}); // برای انبار
+            const [newExp, setNewExp] = useState({title:'', amount:0, cat:'عادی'}); // برای هزینه‌ها
 
-            const addStaff = async () => { if(!newStaffName || !newStaffPin) return; await actions.addStaff({ name: newStaffName, pin: newStaffPin, services: [], slots: [], img: '' }); showNotify('اضافه شد'); setNewStaffName(''); setNewStaffPin(''); };
-            const deleteStaff = async (id) => { if(confirm('حذف شود؟')) { await actions.deleteStaff(id); showNotify('حذف شد'); } };
-            const updateComm = async (staffId, val) => { const newRates = { ...commRates, [staffId]: val }; setCommRates(newRates); };
-            const saveComms = async () => { await actions.setConfig('commissions', commRates); showNotify('درصدها ذخیره شد'); };
-
+            // Finance Logic
             const formatMoney = (n) => new Intl.NumberFormat('fa-IR').format(n);
             const filteredAppts = useMemo(() => {
-                let list = allAppts.filter(a => a.status === 'COMPLETED');
-                if (financeStart) list = list.filter(a => a.date >= financeStart);
-                if (financeEnd) list = list.filter(a => a.date <= financeEnd);
-                if (financeStaffId !== 'all') list = list.filter(a => a.staffId === financeStaffId);
+                let list = data.appointments.filter(a => a.status === 'COMPLETED');
+                if (filters.start) list = list.filter(a => a.date >= filters.start);
+                if (filters.end) list = list.filter(a => a.date <= filters.end);
+                if (filters.staff !== 'all') list = list.filter(a => a.staffId === filters.staff);
                 return list;
-            }, [allAppts, financeStart, financeEnd, financeStaffId]);
+            }, [data.appointments, filters]);
 
             const totalRevenue = filteredAppts.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
-            const totalCommissionShare = filteredAppts.reduce((sum, a) => {
-                const rate = Number(commRates[a.staffId] || 0);
-                return sum + ((Number(a.price) || 0) * (rate / 100));
-            }, 0);
+            const totalExpenses = data.expenses.reduce((sum, e) => sum + (Number(e.amount)||0), 0); // هزینه‌ها
+            const totalCommissionShare = filteredAppts.reduce((sum, a) => sum + ((Number(a.price)||0) * (Number(commRates[a.staffId]||0)/100)), 0);
+            const netProfit = totalRevenue - totalExpenses - totalCommissionShare;
+
+            // CRM Logic
+            const customers = useMemo(() => {
+                const map = {};
+                data.appointments.forEach(a => {
+                    if(!map[a.phone]) map[a.phone] = { name: a.clientName, phone: a.phone, visits: 0, totalSpent: 0, lastVisit: a.date };
+                    map[a.phone].visits++;
+                    map[a.phone].totalSpent += (Number(a.price)||0);
+                    if(a.date > map[a.phone].lastVisit) map[a.phone].lastVisit = a.date;
+                });
+                return Object.values(map);
+            }, [data.appointments]);
+
+            const addStaff = async () => { if(!newStaff.name) return; await actions.addStaff({ ...newStaff, services:[], slots:[], img:'' }); showNotify('اضافه شد'); setNewStaff({name:'', pin:''}); };
+            const addItem = async () => { if(!newItem.name) return; await actions.addItem(newItem); showNotify('کالا اضافه شد'); setNewItem({name:'', qty:0, min:5}); };
+            const addExp = async () => { if(!newExp.title) return; await actions.addExpense({...newExp, date: new Date().toLocaleDateString('fa-IR')}); showNotify('هزینه ثبت شد'); };
 
             return (
-                <div className="space-y-6 pb-20">
-                    <div className="flex justify-between items-center bg-glass p-2 rounded"><h2 className="text-xl text-[#D4AF37]">پنل مدیریت</h2><button onClick={()=>setView('home')} className="text-xs text-red-400">خروج</button></div>
-                    <div className="flex bg-white/5 p-1 rounded-xl gap-2">
-                        {['staff', 'commission', 'finance'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs rounded-lg transition ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400'}`}>{t==='staff'?'پرسنل':t==='commission'?'پورسانت':t==='finance'?'گزارش مالی'}</button>))}
+                <div className="space-y-6 pb-20 fade-in">
+                    <div className="flex justify-between items-center bg-glass p-2 rounded"><h2 className="text-xl text-[#D4AF37]">مدیریت جامع</h2><button onClick={()=>setView('home')} className="text-xs text-red-400">خروج</button></div>
+                    <div className="flex bg-white/5 p-1 rounded-xl gap-2 overflow-x-auto">
+                        {['finance','staff','inventory','crm'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs rounded-lg transition px-3 whitespace-nowrap ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400'}`}>{t==='staff'?'پرسنل':t==='finance'?'مالی':t==='inventory'?'انبار':t==='crm'?'مشتریان'}</button>))}
                     </div>
-                    {tab === 'staff' && (<div className="space-y-4 animate-fade-in"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">افزودن آرایشگر</h3><div className="flex gap-2"><input placeholder="نام" className="input-box flex-1 mb-0" value={newStaffName} onChange={e=>setNewStaffName(e.target.value)} /><input placeholder="PIN" className="input-box w-20 mb-0" value={newStaffPin} onChange={e=>setNewStaffPin(e.target.value)} /></div><button onClick={addStaff} className="btn-gold text-sm py-2 mt-2">افزودن</button></div><div className="space-y-2">{staffList.map(s => (<div key={s.id} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{s.name}</div><div className="text-xs text-zinc-500">PIN: {s.pin}</div></div><button onClick={()=>deleteStaff(s.id)} className="text-red-400 text-xs border border-red-500/50 p-2 rounded">حذف</button></div>))}</div></div>)}
-                    {tab === 'commission' && (<div className="space-y-4 animate-fade-in"><div className="glass p-4"><h3 className="text-sm font-bold mb-4 text-[#D4AF37]">درصد پورسانت آرایشگران</h3><div className="space-y-3">{staffList.map(s => (<div key={s.id} className="flex items-center justify-between"><span className="text-sm">{s.name}</span><div className="flex items-center gap-2"><input type="number" className="input-box w-16 mb-0 py-1" value={commRates[s.id] || 0} onChange={(e) => updateComm(s.id, e.target.value)} /><span className="text-xs text-zinc-400">%</span></div></div>))}</div><button onClick={saveComms} className="btn-gold mt-4">ذخیره درصدها</button></div></div>)}
-                    {tab === 'finance' && (<div className="space-y-4 animate-fade-in"><div className="glass p-4"><h3 className="text-sm font-bold mb-3">فیلتر گزارش</h3><div className="grid grid-cols-2 gap-2 mb-2"><input type="text" placeholder="از تاریخ" className="input-box mb-0 text-sm" onChange={e=>setFinanceStart(e.target.value)} /><input type="text" placeholder="تا تاریخ" className="input-box mb-0 text-sm" onChange={e=>setFinanceEnd(e.target.value)} /></div><select className="input-box bg-black text-sm" onChange={e=>setFinanceStaffId(e.target.value)}><option value="all">همه آرایشگران</option>{staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div><div className="grid grid-cols-2 gap-3"><div className="glass p-4 text-center border border-green-500/30"><p className="text-xs text-zinc-400">کل درآمد</p><p className="text-lg font-bold text-green-400">{formatMoney(totalRevenue)}</p></div><div className="glass p-4 text-center border border-[#D4AF37]/30"><p className="text-xs text-zinc-400">سهم پورسانت</p><p className="text-lg font-bold text-[#D4AF37]">{formatMoney(totalCommissionShare)}</p></div></div></div>)}
+
+                    {tab === 'staff' && (<div className="space-y-4 animate-fade-in"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">افزودن آرایشگر</h3><div className="flex gap-2"><input placeholder="نام" className="input-box flex-1 mb-0" value={newStaff.name} onChange={e=>setNewStaff({...newStaff, name:e.target.value})} /><input placeholder="PIN" className="input-box w-20 mb-0" value={newStaff.pin} onChange={e=>setNewStaff({...newStaff, pin:e.target.value})} /></div><button onClick={addStaff} className="btn-gold text-sm py-2 mt-2">افزودن</button></div>
+                        <div className="glass p-4"><h3 className="text-sm font-bold mb-2 text-[#D4AF37]">تنظیم پورسانت</h3>{data.staff.map(s => (<div key={s.id} className="flex justify-between items-center mb-2"><span className="text-sm">{s.name}</span><div className="flex items-center gap-1"><input type="number" className="input-box w-12 py-1 mb-0" value={commRates[s.id]||0} onChange={e=>setCommRates({...commRates, [s.id]:e.target.value})} /><span className="text-xs">%</span></div></div>))} <button onClick={()=>actions.setConfig('commissions', commRates)} className="btn-gold text-xs py-2 mt-2">ذخیره درصدها</button></div>
+                        <div className="space-y-2">{data.staff.map(s => (<div key={s.id} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{s.name}</div><div className="text-xs text-zinc-500">PIN: {s.pin}</div></div><button onClick={()=>{if(confirm('حذف؟')) actions.deleteStaff(s.id)}} className="text-red-400 text-xs">حذف</button></div>))}</div></div>)}
+
+                    {tab === 'finance' && (<div className="space-y-4 animate-fade-in">
+                        <div className="glass p-4"><h3 className="text-sm font-bold mb-3">فیلتر گزارش</h3><div className="grid grid-cols-2 gap-2 mb-2"><input type="text" placeholder="از تاریخ" className="input-box mb-0 text-sm" onChange={e=>setFilters({...filters, start:e.target.value})} /><input type="text" placeholder="تا تاریخ" className="input-box mb-0 text-sm" onChange={e=>setFilters({...filters, end:e.target.value})} /></div><select className="input-box bg-black text-sm" onChange={e=>setFilters({...filters, staff:e.target.value})}><option value="all">همه آرایشگران</option>{data.staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="card-stat border-green-500/30"><p className="text-xs text-zinc-400">درآمد ناخالص</p><p className="text-lg font-bold text-green-400">{formatMoney(totalRevenue)}</p></div>
+                            <div className="card-stat border-red-500/30"><p className="text-xs text-zinc-400">هزینه‌ها</p><p className="text-lg font-bold text-red-400">{formatMoney(totalExpenses)}</p></div>
+                            <div className="card-stat border-yellow-500/30"><p className="text-xs text-zinc-400">پرداخت پرسنل</p><p className="text-lg font-bold text-yellow-400">{formatMoney(totalCommissionShare)}</p></div>
+                            <div className="card-stat border-blue-500/30"><p className="text-xs text-zinc-400">سود خالص</p><p className="text-lg font-bold text-blue-400">{formatMoney(netProfit)}</p></div>
+                        </div>
+
+                        <div className="glass p-4 border-t-4 border-t-red-500">
+                            <h3 className="text-sm font-bold mb-2">ثبت هزینه جدید</h3>
+                            <div className="flex gap-2 mb-2"><input placeholder="عنوان" className="input-box flex-1 mb-0" onChange={e=>setNewExp({...newExp, title:e.target.value})} /><input placeholder="مبلغ" className="input-box w-24 mb-0" type="number" onChange={e=>setNewExp({...newExp, amount:Number(e.target.value)})} /></div>
+                            <button onClick={addExp} className="btn-gold text-sm py-2">ثبت هزینه</button>
+                            <div className="mt-4 space-y-2 max-h-40 overflow-y-auto">{data.expenses.map((ex,i)=>(<div key={i} className="flex justify-between text-xs border-b border-white/5 pb-1"><span>{ex.title}</span><span className="text-red-400">{formatMoney(ex.amount)}</span></div>))}</div>
+                        </div>
+                    </div>)}
+
+                    {tab === 'inventory' && (<div className="space-y-4 animate-fade-in">
+                        <div className="glass p-4">
+                            <h3 className="text-sm font-bold mb-2">مدیریت موجودی</h3>
+                            <div className="flex gap-2 mb-2"><input placeholder="نام کالا" className="input-box flex-1 mb-0" value={newItem.name} onChange={e=>setNewItem({...newItem, name:e.target.value})} /><input placeholder="تعداد" className="input-box w-16 mb-0" type="number" value={newItem.qty} onChange={e=>setNewItem({...newItem, qty:Number(e.target.value)})} /></div>
+                            <button onClick={addItem} className="btn-gold text-sm py-2">افزودن کالا</button>
+                        </div>
+                        <div className="space-y-2">{data.inventory.map((item, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{item.name}</div><div className={`text-xs ${item.qty<item.min?'text-red-500 font-bold':'text-zinc-500'}`}>موجودی: {item.qty}</div></div><div className="flex gap-2"><button onClick={()=>actions.updateDoc('inventory', item.id, {qty: item.qty+1})} className="bg-green-600/30 px-2 rounded">+</button><button onClick={()=>actions.updateDoc('inventory', item.id, {qty: item.qty-1})} className="bg-red-600/30 px-2 rounded">-</button><button onClick={()=>actions.deleteDoc('inventory', item.id)} className="text-red-500"><i className="ri-delete-bin-line"></i></button></div></div>))}</div>
+                    </div>)}
+
+                    {tab === 'crm' && (<div className="space-y-4 animate-fade-in">
+                        <div className="glass p-4 text-center"><h3 className="text-lg font-bold text-[#D4AF37]">{customers.length}</h3><p className="text-xs text-zinc-400">مشتری ثبت شده</p></div>
+                        <div className="space-y-2">{customers.map((c, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{c.name}</div><div className="text-xs text-zinc-500">{c.phone}</div></div><div className="text-left"><div className="text-xs bg-white/10 px-2 py-1 rounded mb-1">{c.visits} بازدید</div><div className="text-[10px] text-[#D4AF37]">{formatMoney(c.totalSpent)}</div></div></div>))}</div>
+                    </div>)}
                 </div>
             );
         }
 
-        // --- پنل پرسنل ---
-        function StaffPanel({ allAppts, settings, uiConfig, commissions, actions, setView, showNotify }) {
-            const initialStaff = JSON.parse(localStorage.getItem('staff'));
-            const [staff, setStaff] = useState(initialStaff);
+        // --- پنل پرسنل (با امکان مشاهده انبار) ---
+        function StaffPanel({ data, actions, setView, showNotify }) {
+            const staff = JSON.parse(localStorage.getItem('staff'));
             const [tab, setTab] = useState('appts'); 
+            const [me, setMe] = useState(staff);
+            // States for editing
+            const [editName, setEditName] = useState(staff.name); const [editPin, setEditPin] = useState(staff.pin);
+            const [newDate, setNewDate] = useState(''); const [newTime, setNewTime] = useState('');
+            const [newSrvName, setNewSrvName] = useState(''); const [newSrvPrice, setNewSrvPrice] = useState('');
             
-            // Edit States
-            const [editName, setEditName] = useState(staff.name);
-            const [editPin, setEditPin] = useState(staff.pin);
-            const [newDate, setNewDate] = useState('');
-            const [newTime, setNewTime] = useState('');
-            const [newSrvName, setNewSrvName] = useState('');
-            const [newSrvPrice, setNewSrvPrice] = useState('');
-            const [cardNum, setCardNum] = useState(settings.cardNum);
-            const [cardOwner, setCardOwner] = useState(settings.cardOwner);
-            const [uiFont, setUiFont] = useState(uiConfig.font);
-            const [uiColor, setUiColor] = useState(uiConfig.color);
-            const [uiSize, setUiSize] = useState(uiConfig.fontSize);
-            const [filterDate, setFilterDate] = useState('');
-            const [filterBarber, setFilterBarber] = useState('');
-
-            const myAppts = allAppts.filter(a => a.staffId === staff.id && a.status !== 'COMPLETED');
+            const myAppts = data.appointments.filter(a => a.staffId === staff.id && a.status !== 'COMPLETED');
             const formatMoney = (n) => new Intl.NumberFormat('fa-IR').format(n);
-            const isDefaultBarber = staff.id === 's1'; 
 
-            const updateStaffData = async (newData) => { await actions.updateStaff(staff.id, newData); setStaff({...staff, ...newData}); localStorage.setItem('staff', JSON.stringify({...staff, ...newData})); showNotify('ذخیره شد'); }
-            const addSlot = async () => { if(!newDate || !newTime) return; const slots = [...(staff.slots || []), {date: newDate, time: newTime}]; await updateStaffData({ slots }); showNotify('اضافه شد'); };
-            const removeSlot = async (idx) => { const slots = [...(staff.slots || [])]; slots.splice(idx, 1); await updateStaffData({ slots }); };
-            const addService = async () => { if(!newSrvName) return; const services = [...(staff.services || []), {name: newSrvName, price: parseInt(newSrvPrice)}]; await updateStaffData({ services }); showNotify('اضافه شد'); };
-            const removeService = async (idx) => { const services = [...(staff.services || [])]; services.splice(idx, 1); await updateStaffData({ services }); };
-            const savePaymentSettings = async () => { await actions.updateSettings({ cardNum, cardOwner }); showNotify('ذخیره شد'); };
-            const saveUISettings = async () => { await actions.updateUI({ font: uiFont, color: uiColor, fontSize: uiSize }); showNotify('تغییر کرد'); };
-            const completeOrder = async (id) => { await actions.updateAppointmentStatus(id, 'COMPLETED'); showNotify('بایگانی شد'); };
+            const updateMe = async () => { await actions.updateStaff(staff.id, {name:editName, pin:editPin}); showNotify('ذخیره شد'); };
+            const addSlot = async () => { if(!newDate) return; const slots = [...(me.slots||[]), {date:newDate, time:newTime}]; await actions.updateStaff(staff.id, {slots}); };
+            const removeSlot = async (i) => { const s = [...me.slots]; s.splice(i,1); await actions.updateStaff(staff.id, {slots:s}); };
+            const addSrv = async () => { if(!newSrvName) return; const s = [...(me.services||[]), {name:newSrvName, price:Number(newSrvPrice)}]; await actions.updateStaff(staff.id, {services:s}); };
+            const removeSrv = async (i) => { const s = [...me.services]; s.splice(i,1); await actions.updateStaff(staff.id, {services:s}); };
 
-            const myHistory = useMemo(() => allAppts.filter(a => a.staffId === staff.id && a.status === 'COMPLETED').sort((a,b)=>b.createdAt-a.createdAt), [allAppts, staff.id]);
-            const myTotalIncome = myHistory.reduce((sum, i) => sum + (Number(i.price)||0), 0);
-            const myCommissionRate = Number((commissions && commissions[staff.id]) || 0);
-            const myCommissionShare = myTotalIncome * (myCommissionRate / 100);
+            // Sync self
+            useEffect(()=>{ const s = data.staff.find(x=>x.id===staff.id); if(s) setMe(s); },[data.staff]);
 
             return (
                 <div className="space-y-4 pb-20 fade-in">
-                    <div className="glass p-4 flex justify-between items-center"><div className="font-bold text-[#D4AF37]">{staff.name}</div><button onClick={()=>setView('home')} className="text-red-400 text-xs border border-red-500/30 px-3 py-1 rounded">خروج</button></div>
-                    
+                    <div className="glass p-4 flex justify-between items-center"><div className="font-bold text-[#D4AF37]">{me.name}</div><button onClick={()=>setView('home')} className="text-red-400 text-xs border border-red-500/30 px-3 py-1 rounded">خروج</button></div>
                     <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto gap-2">
-                        {['appts','schedule','services','profile'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-lg transition ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400'}`}>{t==='appts'?'نوبت‌ها':t==='schedule'?'تایم':t==='services'?'خدمات':'پروفایل'}</button>))}
-                        <button onClick={()=>setTab('history')} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-lg transition ${tab==='history'?'bg-[#D4AF37] text-black font-bold':'text-zinc-400'}`}>تاریخچه</button>
-                        {isDefaultBarber && <button onClick={()=>setTab('settings')} className={`flex-1 py-2 text-xs px-3 rounded-lg transition ${tab==='settings'?'bg-[#D4AF37] text-black font-bold':'text-zinc-400'}`}>تنظیمات</button>}
+                        {['appts','schedule','services','inventory'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-lg transition ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400'}`}>{t==='appts'?'نوبت‌ها':t==='schedule'?'تایم':t==='services'?'خدمات':t==='inventory'?'مصرف کالا':t}</button>))}
                     </div>
 
-                    {tab === 'appts' && <div className="space-y-3">{myAppts.length===0 ? <p className="text-center opacity-50 py-10 glass">نوبت فعالی ندارید</p> : myAppts.map((a,i) => (
-                        <div key={i} className="glass p-4 border-r-4 border-r-[#D4AF37]">
-                            <div className="flex justify-between font-bold text-white"><span>{a.name}</span><span>{a.time}</span></div>
-                            <div className="text-xs text-zinc-400 mt-1">{a.service} - {a.date}</div>
-                            <div className="text-xs bg-white/5 p-2 rounded mt-2 text-center text-green-400 flex justify-between"><span>کد: {a.trackId}</span><span>{a.phone}</span></div>
-                            <button onClick={()=>completeOrder(a.id)} className="w-full mt-3 bg-green-500/10 text-green-400 py-2 rounded text-xs border border-green-500/30">✓ تایید و بایگانی</button>
-                        </div>))}</div>}
+                    {tab === 'appts' && <div className="space-y-3">{myAppts.length===0 ? <p className="text-center opacity-50 py-10 glass">نوبت فعالی ندارید</p> : myAppts.map((a,i) => (<div key={i} className="glass p-4 border-r-4 border-r-[#D4AF37]"><div className="flex justify-between font-bold text-white"><span>{a.clientName}</span><span>{a.time}</span></div><div className="text-xs text-zinc-400 mt-1">{a.serviceName} - {a.date}</div><div className="text-xs bg-white/5 p-2 rounded mt-2 text-center text-green-400 flex justify-between"><span>کد: {a.trackId}</span><span>{a.clientPhone}</span></div><button onClick={()=>{actions.updateAppointmentStatus(a.id, 'COMPLETED'); showNotify('بایگانی شد');}} className="w-full mt-3 bg-green-500/10 text-green-400 py-2 rounded text-xs border border-green-500/30">✓ تایید و بایگانی</button></div>))}</div>}
 
-                    {tab === 'schedule' && <div className="space-y-4"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">ثبت تایم خالی</h3><div className="flex gap-2"><input type="date" className="input-box flex-1" onChange={e=>setNewDate(e.target.value)} /><input type="time" className="input-box flex-1" onChange={e=>setNewTime(e.target.value)} /></div><button onClick={addSlot} className="btn-gold py-2 text-sm">افزودن تایم</button></div><div className="space-y-2">{(staff.slots || []).map((s, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><span>{s.date} - {s.time}</span><button onClick={()=>removeSlot(i)} className="text-red-400 text-xs">حذف</button></div>))}</div></div>}
+                    {tab === 'schedule' && <div className="space-y-4"><div className="glass p-4"><div className="flex gap-2"><input type="date" className="input-box flex-1 mb-0" onChange={e=>setNewDate(e.target.value)} /><input type="time" className="input-box flex-1 mb-0" onChange={e=>setNewTime(e.target.value)} /></div><button onClick={addSlot} className="btn-gold py-2 text-sm mt-2">افزودن تایم</button></div><div className="space-y-2">{(me.slots||[]).map((s,i)=>(<div key={i} className="glass p-3 flex justify-between items-center text-sm"><span>{s.date} | {s.time}</span><i onClick={()=>removeSlot(i)} className="ri-delete-bin-line text-red-400 cursor-pointer"></i></div>))}</div></div>}
+
+                    {tab === 'services' && <div className="space-y-4"><div className="glass p-4"><input placeholder="نام خدمت" className="input-box" value={newSrvName} onChange={e=>setNewSrvName(e.target.value)} /><input placeholder="قیمت" className="input-box" value={newSrvPrice} onChange={e=>setNewSrvPrice(e.target.value)} /><button onClick={addSrv} className="btn-gold py-2 text-sm">افزودن</button></div><div className="space-y-2">{(me.services||[]).map((s,i)=>(<div key={i} className="glass p-3 flex justify-between items-center text-sm"><span>{s.name} ({formatMoney(s.price)})</span><i onClick={()=>removeSrv(i)} className="ri-delete-bin-line text-red-400 cursor-pointer"></i></div>))}</div></div>}
                     
-                    {tab === 'services' && <div className="space-y-4"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">افزودن خدمت</h3><input placeholder="نام خدمت" className="input-box" value={newSrvName} onChange={e=>setNewSrvName(e.target.value)} /><input type="number" placeholder="قیمت" className="input-box" value={newSrvPrice} onChange={e=>setNewSrvPrice(e.target.value)} /><button onClick={addService} className="btn-gold py-2 text-sm">افزودن</button></div><div className="space-y-2">{(staff.services || []).map((s, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><span>{s.name} ({formatMoney(s.price)})</span><button onClick={()=>removeService(i)} className="text-red-400 text-xs">حذف</button></div>))}</div></div>}
-                    
-                    {tab === 'profile' && <div className="glass p-6 space-y-4"><h3 className="text-sm font-bold text-center mb-4">ویرایش اطلاعات من</h3><input placeholder="نام" className="input-box" value={editName} onChange={e=>setEditName(e.target.value)} /><input placeholder="PIN" className="input-box" value={editPin} onChange={e=>setEditPin(e.target.value)} /><button onClick={()=>updateProfile({name:editName, pin:editPin, img:editImg})} className="btn-gold">ذخیره تغییرات</button></div>}
-
-                    {tab === 'history' && (
-                        <div className="space-y-4 animate-fade-in"><div className="glass p-4 text-center"><h3 className="text-sm font-bold mb-3 text-[#D4AF37]">گزارش عملکرد شما</h3><div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/10 mb-2"><span className="text-xs text-zinc-400">کل کارکرد:</span><span className="text-lg font-bold text-white">{formatMoney(myTotalIncome)} ت</span></div><div className="flex justify-between items-center bg-[#D4AF37]/10 p-3 rounded-lg border border-[#D4AF37]/30"><span className="text-xs text-[#D4AF37]">سهم پورسانت ({myCommissionRate}%):</span><span className="text-lg font-bold text-[#D4AF37]">{formatMoney(myCommissionShare)} ت</span></div></div><div className="space-y-2">{myHistory.map((item, idx) => (<div key={idx} className="glass p-3 text-sm border-l-4 border-l-green-500"><div className="flex justify-between font-bold mb-1"><span>{item.clientName || item.name}</span><span className="text-zinc-400">{formatMoney(item.price)}</span></div><div className="text-xs opacity-70 flex justify-between"><span>{item.service}</span><span>{item.date}</span></div></div>))}</div></div>
-                    )}
-
-                    {tab === 'settings' && isDefaultBarber && (
-                        <div className="space-y-4 animate-fade-in"><div className="glass p-6 space-y-4"><h3 className="text-center font-bold text-[#D4AF37] border-b border-white/10 pb-2">تنظیمات درگاه</h3><input className="input-box" value={cardNum} onChange={e=>setCardNum(e.target.value)} /><input className="input-box" value={cardOwner} onChange={e=>setCardOwner(e.target.value)} /><button onClick={savePaymentSettings} className="btn-gold mt-2">ذخیره تغییرات</button></div><div className="glass p-6 space-y-4"><h3 className="text-center font-bold text-[#D4AF37] border-b border-white/10 pb-2">تنظیمات ظاهر</h3><select className="input-box bg-black" value={uiFont} onChange={e=>setUiFont(e.target.value)}><option value="font-vazir">وزیر</option><option value="font-samim">صمیم</option></select><input type="color" className="w-full h-10" value={uiColor} onChange={e=>setUiColor(e.target.value)} /><button onClick={saveUISettings} className="btn-gold mt-2">ذخیره ظاهر</button></div></div>
-                    )}
+                    {tab === 'inventory' && <div className="space-y-2"><p className="text-xs text-zinc-400 text-center mb-2">ثبت مصرف مواد اولیه</p>{data.inventory.map((item, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><span>{item.name} ({item.qty})</span><button onClick={()=>{actions.updateDoc('inventory', item.id, {qty: item.qty-1}); showNotify('ثبت شد')}} className="bg-red-500/20 text-red-400 px-3 py-1 rounded text-xs">مصرف شد -1</button></div>))}</div>}
                 </div>
             );
         }
 
         function QRView({ setView }) {
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
-            return <div className="h-[60vh] flex flex-col items-center justify-center text-center fade-in"><div className="bg-white p-3 rounded-xl mb-4"><img src={qrUrl} alt="QR" width="200"/></div><p className="text-xs text-zinc-500">برای ورود اسکن کنید</p></div>;
+            return <div className="h-[60vh] flex flex-col items-center justify-center text-center fade-in"><div className="bg-white p-4 rounded-2xl mb-6"><img src={qrUrl} alt="QR" width="200"/></div><p className="text-sm opacity-70 mb-6">اسکن کنید</p><button onClick={()=>setView('home')} className="text-[#D4AF37] border border-[#D4AF37] px-6 py-2 rounded-full text-sm">بازگشت</button></div>;
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
