@@ -7,14 +7,14 @@
     <meta name="theme-color" content="#000000">
     <title>AMORY | سیستم جامع مدیریت</title>
     
-    <!-- 1. کتابخانه‌ها (با لینک‌های پایدار) -->
+    <!-- 1. کتابخانه‌ها -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- Supabase (لینک اصلاح شده) -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Supabase با لینک جایگزین و پایدارتر -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- فونت‌ها و آیکون -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
@@ -23,7 +23,7 @@
     <style>
         body { font-family: 'Vazirmatn', sans-serif; color: #eee; overflow-x: hidden; margin: 0; background-color: #000; }
         #bg-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-size: cover; background-position: center; transition: background-image 0.8s ease-in-out; filter: brightness(0.25) blur(3px); }
-        .glass { background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .glass { background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
         .glass-header { background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .glass-footer { background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.1); }
         .btn-gold { background: linear-gradient(135deg, #D4AF37 0%, #AA8518 100%); color: black; font-weight: 800; padding: 12px; border-radius: 12px; width: 100%; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); transition: transform 0.2s; }
@@ -45,7 +45,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- تنظیمات Supabase ---
+        // --- تنظیمات Supabase (جایگذاری شده) ---
         const SUPABASE_URL = 'https://klbrajeljnqdjburxrto.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsYnJhamVsam5xZGpidXJ4cnRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMTg3NTgsImV4cCI6MjA4MDc5NDc1OH0.qpPOyOnSx0T5i4KiljEfo-tELIESNtIg5si4a1p4bek';
 
@@ -78,21 +78,30 @@
                 commissions: {}
             });
 
-            // Initialize Supabase safely
+            // راه‌اندازی با تایم‌اوت و تلاش مجدد
             useEffect(() => {
+                let attempts = 0;
+                const maxAttempts = 20; // 10 ثانیه (هر نیم ثانیه چک میکنه)
+                
                 const initSupabase = () => {
+                    // چک کردن وجود کتابخانه گلوبال
                     if (window.supabase && window.supabase.createClient) {
                         try {
                             const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                             setSupabase(client);
                         } catch (e) {
                             console.error("Supabase client init failed:", e);
-                            setError("خطا در راه‌اندازی دیتابیس.");
+                            setError("خطا در تنظیمات دیتابیس.");
                             setLoading(false);
                         }
                     } else {
-                        // Retry if script hasn't loaded yet
-                        setTimeout(initSupabase, 500);
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            setTimeout(initSupabase, 500);
+                        } else {
+                            setError("کتابخانه دیتابیس لود نشد. لطفا اینترنت/VPN را چک کنید.");
+                            setLoading(false);
+                        }
                     }
                 };
                 initSupabase();
@@ -107,15 +116,16 @@
             const fetchData = async () => {
                 if (!supabase) return;
                 setLoading(true);
+                setError(null);
                 
                 try {
-                    // Check connection
+                    // تست اتصال
                     const { data: staffData, error: staffErr } = await supabase.from('staff').select('*');
                     
                     if (staffErr) throw staffErr;
                     
+                    // اگر جدول خالی بود، داده اولیه بریز
                     if (!staffData || staffData.length === 0) {
-                         // Seed initial data
                         await Promise.all(defaultStaff.map(s => supabase.from('staff').insert(s)));
                     }
 
@@ -146,10 +156,10 @@
                         commissions: newComms 
                     });
                     setLoading(false);
-                    setError(null);
 
-                    // Realtime subscriptions
-                    const channels = ['staff', 'appointments', 'config', 'expenses', 'inventory'].map(t => 
+                    // Realtime
+                    const tables = ['staff', 'appointments', 'config', 'expenses', 'inventory'];
+                    const channels = tables.map(t => 
                         supabase.channel(`public:${t}`)
                             .on('postgres_changes', { event: '*', schema: 'public', table: t }, () => fetchData())
                             .subscribe()
@@ -159,7 +169,7 @@
 
                 } catch (err) {
                     console.error(err);
-                    setError("خطا در دریافت اطلاعات. اتصال اینترنت را بررسی کنید.");
+                    setError(`خطا در اتصال: ${err.message || 'مشکل شبکه'}`);
                     setLoading(false);
                 }
             };
@@ -169,7 +179,7 @@
             }, [supabase]);
 
             const actions = {
-                retry: fetchData,
+                retry: () => window.location.reload(),
                 addAppt: async (a) => await supabase.from('appointments').insert(a),
                 updateAppt: async (id, s) => await supabase.from('appointments').update(s).eq('id', id),
                 updateStaff: async (id, d) => await supabase.from('staff').update(d).eq('id', id),
@@ -187,10 +197,10 @@
                      }
                 },
                 consumeInventory: async (item, consumeQty) => {
-                     const cost = consumeQty * (item.price || 0); // Assuming price is purchase price
+                     const cost = consumeQty * (item.price || 0); 
                      await supabase.from('expenses').insert({
                          title: `مصرف: ${item.name}`,
-                         amount: 0, // In simple mode, cost tracking might be complex, set 0 or estimate
+                         amount: 0, 
                          date: new Date().toLocaleDateString('fa-IR'),
                          category: 'مواد مصرفی'
                      });
@@ -231,16 +241,22 @@
 
             if (error) return (
                 <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
-                    <div className="glass p-8 border border-red-500/50">
-                        <i className="ri-wifi-off-line text-4xl text-red-500 mb-4 block"></i>
-                        <h3 className="text-xl font-bold text-white mb-2">مشکل در ارتباط</h3>
+                    <div className="glass p-8 border border-red-500/50 max-w-sm">
+                        <i className="ri-signal-wifi-error-line text-4xl text-red-500 mb-4 block"></i>
+                        <h3 className="text-xl font-bold text-white mb-2">مشکل در بارگذاری</h3>
                         <p className="text-zinc-400 text-sm mb-6">{error}</p>
+                        <p className="text-xs text-zinc-500 mb-4">نکته: برای بار اول حتما VPN را روشن کنید تا کتابخانه‌ها دانلود شوند.</p>
                         <button onClick={actions.retry} className="btn-gold">تلاش مجدد</button>
                     </div>
                 </div>
             );
 
-            if (loading) return <div className="h-screen flex items-center justify-center"><div className="spinner"></div></div>;
+            if (loading) return (
+                <div className="h-screen flex flex-col items-center justify-center gap-4">
+                    <div className="spinner"></div>
+                    <span className="text-zinc-400 text-sm animate-pulse">در حال اتصال به پایگاه داده...</span>
+                </div>
+            );
 
             return (
                 <div className="flex flex-col min-h-screen">
