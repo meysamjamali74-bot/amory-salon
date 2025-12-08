@@ -57,7 +57,7 @@
             appId: "1:253980572032:web:2c96ae935b276f05c92965"
         };
 
-        const APP_ID = "amory_erp_v1"; // دیتابیس جدید برای سیستم ERP
+        const APP_ID = "amory_erp_v1_fixed"; // دیتابیس جدید برای اطمینان از سلامت داده‌ها
 
         let db = null, auth = null;
         try {
@@ -304,17 +304,20 @@
             const addStaff = async () => { if(!newStaff.name) return; await actions.addStaff({ ...newStaff, services:[], slots:[], img:'' }); showNotify('اضافه شد'); setNewStaff({name:'', pin:''}); };
             const addItem = async () => { if(!newItem.name) return; await actions.addItem(newItem); showNotify('کالا اضافه شد'); setNewItem({name:'', qty:0, min:5}); };
             const addExp = async () => { if(!newExp.title) return; await actions.addExpense({...newExp, date: new Date().toLocaleDateString('fa-IR')}); showNotify('هزینه ثبت شد'); };
+            const updateComm = async (staffId, val) => { const newRates = { ...commRates, [staffId]: val }; setCommRates(newRates); };
+            const saveComms = async () => { await actions.setConfig('commissions', commRates); showNotify('درصدها ذخیره شد'); };
+            const deleteStaff = async (id) => { if(confirm('حذف شود؟')) { await actions.deleteStaff(id); showNotify('حذف شد'); } };
 
             return (
                 <div className="space-y-6 pb-20 fade-in">
                     <div className="flex justify-between items-center bg-glass p-2 rounded"><h2 className="text-xl text-[#D4AF37]">مدیریت جامع</h2><button onClick={()=>setView('home')} className="text-xs text-red-400">خروج</button></div>
                     <div className="flex bg-white/5 p-1 rounded-xl gap-2 overflow-x-auto">
-                        {['finance','staff','inventory','crm'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs rounded-lg transition px-3 whitespace-nowrap ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400'}`}>{t==='staff'?'پرسنل':t==='finance'?'مالی':t==='inventory'?'انبار':t==='crm'?'مشتریان'}</button>))}
+                        {['finance','staff','inventory','crm'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs rounded-lg transition px-3 whitespace-nowrap ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400'}`}>{t==='staff'?'پرسنل':t==='finance'?'مالی':t==='inventory'?'انبار':t==='crm'?'مشتریان':t}</button>))}
                     </div>
 
                     {tab === 'staff' && (<div className="space-y-4 animate-fade-in"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">افزودن آرایشگر</h3><div className="flex gap-2"><input placeholder="نام" className="input-box flex-1 mb-0" value={newStaff.name} onChange={e=>setNewStaff({...newStaff, name:e.target.value})} /><input placeholder="PIN" className="input-box w-20 mb-0" value={newStaff.pin} onChange={e=>setNewStaff({...newStaff, pin:e.target.value})} /></div><button onClick={addStaff} className="btn-gold text-sm py-2 mt-2">افزودن</button></div>
-                        <div className="glass p-4"><h3 className="text-sm font-bold mb-2 text-[#D4AF37]">تنظیم پورسانت</h3>{data.staff.map(s => (<div key={s.id} className="flex justify-between items-center mb-2"><span className="text-sm">{s.name}</span><div className="flex items-center gap-1"><input type="number" className="input-box w-12 py-1 mb-0" value={commRates[s.id]||0} onChange={e=>setCommRates({...commRates, [s.id]:e.target.value})} /><span className="text-xs">%</span></div></div>))} <button onClick={()=>actions.setConfig('commissions', commRates)} className="btn-gold text-xs py-2 mt-2">ذخیره درصدها</button></div>
-                        <div className="space-y-2">{data.staff.map(s => (<div key={s.id} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{s.name}</div><div className="text-xs text-zinc-500">PIN: {s.pin}</div></div><button onClick={()=>{if(confirm('حذف؟')) actions.deleteStaff(s.id)}} className="text-red-400 text-xs">حذف</button></div>))}</div></div>)}
+                        <div className="glass p-4"><h3 className="text-sm font-bold mb-2 text-[#D4AF37]">تنظیم پورسانت</h3>{data.staff.map(s => (<div key={s.id} className="flex justify-between items-center mb-2"><span className="text-sm">{s.name}</span><div className="flex items-center gap-1"><input type="number" className="input-box w-12 py-1 mb-0" value={commRates[s.id]||0} onChange={e=>updateComm(s.id, e.target.value)} /><span className="text-xs">%</span></div></div>))} <button onClick={saveComms} className="btn-gold text-xs py-2 mt-2">ذخیره درصدها</button></div>
+                        <div className="space-y-2">{data.staff.map(s => (<div key={s.id} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{s.name}</div><div className="text-xs text-zinc-500">PIN: {s.pin}</div></div><button onClick={()=>{deleteStaff(s.id)}} className="text-red-400 text-xs border border-red-500/50 p-2 rounded">حذف</button></div>))}</div></div>)}
 
                     {tab === 'finance' && (<div className="space-y-4 animate-fade-in">
                         <div className="glass p-4"><h3 className="text-sm font-bold mb-3">فیلتر گزارش</h3><div className="grid grid-cols-2 gap-2 mb-2"><input type="text" placeholder="از تاریخ" className="input-box mb-0 text-sm" onChange={e=>setFilters({...filters, start:e.target.value})} /><input type="text" placeholder="تا تاریخ" className="input-box mb-0 text-sm" onChange={e=>setFilters({...filters, end:e.target.value})} /></div><select className="input-box bg-black text-sm" onChange={e=>setFilters({...filters, staff:e.target.value})}><option value="all">همه آرایشگران</option>{data.staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
