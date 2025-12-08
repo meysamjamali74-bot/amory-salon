@@ -16,27 +16,36 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
+    <!-- فونت‌های اضافه -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/samim-font@v4.0.0/dist/font-face.css" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/font-face.css" rel="stylesheet" type="text/css" />
+
     <style>
-        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
-        
         body { 
-            font-family: 'Vazirmatn', sans-serif; 
-            color: #eee; 
-            overflow-x: hidden; 
-            padding-bottom: 20px;
-            /* پس‌زمینه مدرن و تار */
             background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.85)), url('https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=1974&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 20px;
         }
 
-        .glass { background: rgba(30, 30, 30, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); }
+        .glass { background: rgba(30, 30, 30, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); }
         .btn-gold { background: linear-gradient(135deg, #D4AF37 0%, #C5A028 100%); color: black; font-weight: bold; padding: 12px; border-radius: 8px; width: 100%; transition: 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
-        .input-box { background: rgba(0, 0, 0, 0.5); border: 1px solid #444; color: white; padding: 10px; width: 100%; border-radius: 8px; outline: none; margin-bottom: 10px; text-align: center; }
+        .btn-gold:active { transform: scale(0.97); opacity: 0.9; }
+        .input-box { background: rgba(0, 0, 0, 0.6); border: 1px solid #444; padding: 10px; width: 100%; border-radius: 8px; outline: none; margin-bottom: 10px; text-align: center; }
         .spinner { width: 30px; height: 30px; border: 3px solid #fff; border-top-color: #D4AF37; border-radius: 50%; animation: spin 1s infinite; margin: 0 auto; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* کلاس‌های فونت */
+        .font-vazir { font-family: 'Vazirmatn', sans-serif; }
+        .font-samim { font-family: 'Samim', sans-serif; }
+        .font-shabnam { font-family: 'Shabnam', sans-serif; }
+        .font-tahoma { font-family: 'Tahoma', sans-serif; }
     </style>
 </head>
 <body>
@@ -53,13 +62,15 @@
             appId: "1:253980572032:web:2c96ae935b276f05c92965"
         };
 
-        const APP_ID = "amory_final_v4"; // نسخه جدید
+        const APP_ID = "amory_final_v5"; // آپدیت نسخه
 
         let db = null, auth = null;
         try {
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             auth = firebase.auth();
+            // تلاش برای persistence
+            db.enablePersistence({ synchronizeTabs: true }).catch(err => console.log(err));
         } catch (e) { console.warn("Init Error:", e); }
 
         const { useState, useEffect, useMemo } = React;
@@ -67,7 +78,12 @@
         // --- هوک مدیریت داده ---
         const useDataManager = () => {
             const [mode, setMode] = useState('loading'); 
-            const [data, setData] = useState({ staff: [], appointments: [], settings: { cardNum: "6037997123456789", cardOwner: "سالن زیبایی آموری" } });
+            const [data, setData] = useState({ 
+                staff: [], 
+                appointments: [], 
+                settings: { cardNum: "6037997123456789", cardOwner: "سالن زیبایی آموری" },
+                uiConfig: { font: 'font-vazir', color: '#eeeeee', fontSize: '16px' }
+            });
             
             const defaultStaff = [
                 { id: 's1', name: 'پیش‌فرض ۱', pin: '1111', img: '', services: [{name:'اصلاح', price:200000}], slots: [] },
@@ -78,7 +94,8 @@
             useEffect(() => {
                 const init = async () => {
                     try {
-                        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 5000));
+                        // افزایش زمان انتظار برای اندروید و اینترنت کند
+                        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 15000));
                         await Promise.race([auth.signInAnonymously(), timeout]);
                         
                         setMode('online');
@@ -93,19 +110,31 @@
                             setData(prev => ({ ...prev, appointments: snap.docs.map(d => ({id:d.id, ...d.data()})) }));
                         });
 
-                        // لود تنظیمات کارت
-                        db.collection('artifacts').doc(APP_ID).collection('config').doc('payment').onSnapshot(doc => {
-                            if(doc.exists) setData(prev => ({ ...prev, settings: doc.data() }));
-                            else db.collection('artifacts').doc(APP_ID).collection('config').doc('payment').set(data.settings);
+                        // لود تنظیمات
+                        db.collection('artifacts').doc(APP_ID).collection('config').onSnapshot(snap => {
+                            let newSettings = data.settings;
+                            let newUI = data.uiConfig;
+                            snap.docs.forEach(doc => {
+                                if(doc.id === 'payment') newSettings = doc.data();
+                                if(doc.id === 'ui') newUI = doc.data();
+                            });
+                            // اگر داکیومنت وجود نداشت، بساز
+                            if (snap.empty) {
+                                db.collection('artifacts').doc(APP_ID).collection('config').doc('payment').set(data.settings);
+                                db.collection('artifacts').doc(APP_ID).collection('config').doc('ui').set(data.uiConfig);
+                            }
+                            setData(prev => ({ ...prev, settings: newSettings, uiConfig: newUI }));
                         });
 
                     } catch (e) {
+                        console.log("Offline Mode Activated", e);
                         setMode('offline');
                         const localData = JSON.parse(localStorage.getItem('amory_data')) || {};
                         setData({ 
                             staff: localData.staff || defaultStaff, 
                             appointments: localData.appointments || [],
-                            settings: localData.settings || data.settings
+                            settings: localData.settings || data.settings,
+                            uiConfig: localData.uiConfig || data.uiConfig
                         });
                     }
                 };
@@ -116,11 +145,17 @@
                 addAppointment: async (appt) => {
                     if (mode === 'online') await db.collection('artifacts').doc(APP_ID).collection('appointments').add(appt);
                 },
+                updateAppointmentStatus: async (id, status) => {
+                    if (mode === 'online') await db.collection('artifacts').doc(APP_ID).collection('appointments').doc(id).update({ status });
+                },
                 updateStaff: async (id, newData) => {
                     if (mode === 'online') await db.collection('artifacts').doc(APP_ID).collection('staff').doc(id).update(newData);
                 },
                 updateSettings: async (newSettings) => {
                     if (mode === 'online') await db.collection('artifacts').doc(APP_ID).collection('config').doc('payment').set(newSettings);
+                },
+                updateUI: async (newUI) => {
+                    if (mode === 'online') await db.collection('artifacts').doc(APP_ID).collection('config').doc('ui').set(newUI);
                 },
                 addStaff: async (staffMember) => {
                      if (mode === 'online') await db.collection('artifacts').doc(APP_ID).collection('staff').add(staffMember);
@@ -144,6 +179,16 @@
                 setTimeout(() => setNotify(null), 3000);
             };
 
+            // اعمال تنظیمات UI
+            useEffect(() => {
+                document.body.className = data.uiConfig.font;
+                document.body.style.color = data.uiConfig.color;
+                document.body.style.fontSize = data.uiConfig.fontSize;
+                // تغییر رنگ اینپوت‌ها اگر متن روشن است
+                const inputs = document.querySelectorAll('.input-box');
+                inputs.forEach(i => i.style.color = data.uiConfig.color);
+            }, [data.uiConfig]);
+
             if (mode === 'loading') return <div className="h-screen flex items-center justify-center"><div className="spinner"></div></div>;
 
             return (
@@ -151,11 +196,11 @@
                     <div className="sticky top-0 z-50 glass mt-4 p-4 flex justify-between items-center mb-6 shadow-2xl">
                         <div>
                             <h1 className="text-xl font-black text-[#D4AF37] tracking-widest cursor-pointer" onClick={()=>setView('home')}>AMORY</h1>
-                            <div className="text-[10px] text-zinc-300">
+                            <div className="text-[10px]" style={{color: data.uiConfig.color, opacity: 0.7}}>
                                 {mode === 'online' ? <span className="text-green-400">● آنلاین</span> : <span className="text-red-400">○ آفلاین</span>}
                             </div>
                         </div>
-                        {view !== 'home' && <button onClick={() => setView('home')} className="text-sm text-zinc-300 bg-white/10 px-3 py-1 rounded-lg">خانه</button>}
+                        {view !== 'home' && <button onClick={() => setView('home')} className="text-sm bg-white/10 px-3 py-1 rounded-lg">خانه</button>}
                     </div>
 
                     <div>
@@ -163,7 +208,7 @@
                         {view === 'qr' && <QRView />}
                         {view === 'login' && <StaffLogin staffList={data.staff} setView={setView} showNotify={showNotify} />}
                         {view === 'admin' && <AdminPanel staffList={data.staff} actions={actions} setView={setView} showNotify={showNotify} />}
-                        {view === 'panel' && <StaffPanel allAppts={data.appointments} settings={data.settings} actions={actions} setView={setView} showNotify={showNotify} />}
+                        {view === 'panel' && <StaffPanel allAppts={data.appointments} settings={data.settings} uiConfig={data.uiConfig} actions={actions} setView={setView} showNotify={showNotify} />}
                         {view === 'booking' && <BookingProcess staffList={data.staff} settings={data.settings} actions={actions} setView={setView} showNotify={showNotify} />}
                     </div>
 
@@ -176,12 +221,12 @@
             return (
                 <div className="space-y-4 fade-in">
                     <div className="glass p-8 text-center border border-[#D4AF37]/50 shadow-[0_0_20px_rgba(212,175,55,0.1)]">
-                        <h2 className="text-2xl font-bold mb-2 text-white">رزرو آنلاین</h2>
-                        <p className="text-zinc-300 text-sm">تجربه نوبت‌دهی سریع و مدرن</p>
+                        <h2 className="text-2xl font-bold mb-2">رزرو آنلاین</h2>
+                        <p className="opacity-80 text-sm">تجربه نوبت‌دهی سریع و مدرن</p>
                     </div>
                     <button onClick={() => setView('booking')} className="glass w-full p-5 flex justify-between items-center group hover:bg-white/10 transition"><span className="font-bold text-lg">رزرو نوبت</span><span className="text-[#D4AF37] text-xl">➜</span></button>
-                    <button onClick={() => setView('login')} className="glass w-full p-5 flex justify-between items-center hover:bg-white/10 transition"><span className="font-bold text-lg">ورود پرسنل</span><span className="text-zinc-400">مدیریت</span></button>
-                    <button onClick={() => setView('qr')} className="text-center w-full text-xs text-zinc-300 mt-6 bg-black/40 py-2 rounded-lg">نمایش QR کد ورود</button>
+                    <button onClick={() => setView('login')} className="glass w-full p-5 flex justify-between items-center hover:bg-white/10 transition"><span className="font-bold text-lg">ورود پرسنل</span><span className="opacity-70">مدیریت</span></button>
+                    <button onClick={() => setView('qr')} className="text-center w-full text-xs opacity-70 mt-6 bg-black/40 py-2 rounded-lg">نمایش QR کد ورود</button>
                 </div>
             );
         }
@@ -190,6 +235,7 @@
             const [step, setStep] = useState(1);
             const [data, setData] = useState({});
             const [loading, setLoading] = useState(false);
+            const [success, setSuccess] = useState(false); // برای نمایش پیام موفقیت
             const formatMoney = (n) => new Intl.NumberFormat('fa-IR').format(n);
 
             const submit = async () => {
@@ -200,29 +246,40 @@
                     const staff = staffList.find(s => s.id === data.staffId);
                     const newSlots = (staff.slots || []).filter(s => !(s.date === data.date && s.time === data.time));
                     await actions.updateStaff(staff.id, { slots: newSlots });
-                    showNotify('نوبت ثبت شد!'); setTimeout(()=>setView('home'), 2000);
+                    
+                    setLoading(false);
+                    setSuccess(true); // نمایش پیام موفقیت
                 } catch(e) { showNotify('خطا در ثبت', 'error'); setLoading(false); }
             };
 
-            if(step===1) return <div className="space-y-3"><h3 className="text-[#D4AF37] mb-2 font-bold bg-black/50 p-2 rounded w-fit">۱. انتخاب آرایشگر</h3>{staffList.map(s => (<div key={s.id} onClick={()=>{setData({...data, staffName: s.name, staffId: s.id}); setStep(2)}} className="glass p-3 flex items-center gap-3 cursor-pointer hover:border-[#D4AF37] transition"><div className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center font-bold text-xl text-[#D4AF37] border border-[#D4AF37]">{s.name[0]}</div><div><div className="font-bold">{s.name}</div><div className="text-xs text-zinc-300">انتخاب</div></div></div>))}</div>;
+            if (success) return (
+                <div className="glass p-8 text-center fade-in border border-green-500/50">
+                    <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg shadow-green-500/40">✓</div>
+                    <h2 className="text-2xl font-bold text-green-400 mb-2">رزرو با موفقیت انجام شد</h2>
+                    <p className="mb-6 opacity-80">نوبت شما برای {data.date} ساعت {data.time} ثبت شد.</p>
+                    <button onClick={() => setView('home')} className="btn-gold">بازگشت به خانه</button>
+                </div>
+            );
+
+            if(step===1) return <div className="space-y-3"><h3 className="text-[#D4AF37] mb-2 font-bold bg-black/50 p-2 rounded w-fit">۱. انتخاب آرایشگر</h3>{staffList.map(s => (<div key={s.id} onClick={()=>{setData({...data, staffName: s.name, staffId: s.id}); setStep(2)}} className="glass p-3 flex items-center gap-3 cursor-pointer hover:border-[#D4AF37] transition"><div className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center font-bold text-xl text-[#D4AF37] border border-[#D4AF37]">{s.name[0]}</div><div><div className="font-bold">{s.name}</div><div className="text-xs opacity-70">انتخاب</div></div></div>))}</div>;
             
             if(step===2) { 
                 const s = staffList.find(x=>x.id===data.staffId); 
-                return <div className="space-y-3"><div onClick={()=>setStep(1)} className="text-xs mb-2 cursor-pointer text-zinc-300">بازگشت</div><h3 className="text-[#D4AF37] mb-2 font-bold bg-black/50 p-2 rounded w-fit">۲. انتخاب خدمات</h3>
-                {(s.services || []).length === 0 ? <p className="text-zinc-300 text-center glass p-4">خدمتی ثبت نشده</p> : s.services.map((srv, i) => (<div key={i} onClick={()=>{setData({...data, service: srv.name, price: srv.price}); setStep(3)}} className="glass p-4 flex justify-between cursor-pointer hover:bg-white/10 transition"><span>{srv.name}</span><span className="text-[#D4AF37] font-mono">{formatMoney(srv.price)} ت</span></div>))}</div>; 
+                return <div className="space-y-3"><div onClick={()=>setStep(1)} className="text-xs mb-2 cursor-pointer opacity-70">بازگشت</div><h3 className="text-[#D4AF37] mb-2 font-bold bg-black/50 p-2 rounded w-fit">۲. انتخاب خدمات</h3>
+                {(s.services || []).length === 0 ? <p className="opacity-70 text-center glass p-4">خدمتی ثبت نشده</p> : s.services.map((srv, i) => (<div key={i} onClick={()=>{setData({...data, service: srv.name, price: srv.price}); setStep(3)}} className="glass p-4 flex justify-between cursor-pointer hover:bg-white/10 transition"><span>{srv.name}</span><span className="text-[#D4AF37] font-mono">{formatMoney(srv.price)} ت</span></div>))}</div>; 
             }
 
             if(step===3) {
                 const s = staffList.find(x=>x.id===data.staffId);
                 const availableSlots = s.slots || [];
-                return <div className="space-y-4"><div onClick={()=>setStep(2)} className="text-xs mb-2 cursor-pointer text-zinc-300">بازگشت</div><h3 className="text-[#D4AF37] font-bold bg-black/50 p-2 rounded w-fit">۳. انتخاب زمان</h3>
+                return <div className="space-y-4"><div onClick={()=>setStep(2)} className="text-xs mb-2 cursor-pointer opacity-70">بازگشت</div><h3 className="text-[#D4AF37] font-bold bg-black/50 p-2 rounded w-fit">۳. انتخاب زمان</h3>
                 {availableSlots.length === 0 ? <div className="text-center text-red-300 glass p-4 border-red-500/30">هیچ نوبت خالی موجود نیست.</div> : 
                 <div className="grid grid-cols-2 gap-3">{availableSlots.sort((a,b)=>a.date.localeCompare(b.date)).map((slot, i) => (
                     <button key={i} onClick={()=>{setData({...data, date: slot.date, time: slot.time}); setStep(4)}} className="glass p-3 text-center hover:bg-[#D4AF37] hover:text-black transition"><div className="font-bold">{slot.time}</div><div className="text-xs opacity-70">{slot.date}</div></button>
                 ))}</div>}</div>;
             }
 
-            if(step===4) return <div className="space-y-4"><div onClick={()=>setStep(3)} className="text-xs mb-2 cursor-pointer text-zinc-300">بازگشت</div><div className="glass p-6 text-center border-t-4 border-t-[#D4AF37]"><p className="text-xs text-zinc-300">مبلغ قابل پرداخت</p><p className="text-3xl font-black text-[#D4AF37] mb-6 drop-shadow-md">{formatMoney(data.price)} تومان</p><div className="bg-black/40 p-4 rounded-xl mb-4 text-sm border border-white/10 cursor-pointer hover:bg-black/60 transition" onClick={()=>{navigator.clipboard.writeText(settings.cardNum); showNotify('شماره کارت کپی شد')}}><p className="text-zinc-400 text-xs mb-1">شماره کارت (لمس برای کپی):</p><div className="font-mono text-lg tracking-widest text-white select-all dir-ltr">{settings.cardNum}</div><p className="text-[10px] text-zinc-400 mt-1">{settings.cardOwner}</p></div><input placeholder="نام و نام خانوادگی" className="input-box" onChange={e=>setData({...data, name: e.target.value})}/><input placeholder="شماره موبایل" type="tel" className="input-box" onChange={e=>setData({...data, phone: e.target.value})}/><input placeholder="کد پیگیری تراکنش" className="input-box border-[#D4AF37]" onChange={e=>setData({...data, trackId: e.target.value})}/></div><button onClick={submit} disabled={loading} className="btn-gold shadow-lg shadow-yellow-500/20">{loading ? '...' : 'ثبت نهایی'}</button></div>;
+            if(step===4) return <div className="space-y-4"><div onClick={()=>setStep(3)} className="text-xs mb-2 cursor-pointer opacity-70">بازگشت</div><div className="glass p-6 text-center border-t-4 border-t-[#D4AF37]"><p className="text-xs opacity-70">مبلغ قابل پرداخت</p><p className="text-3xl font-black text-[#D4AF37] mb-6 drop-shadow-md">{formatMoney(data.price)} تومان</p><div className="bg-black/40 p-4 rounded-xl mb-4 text-sm border border-white/10 cursor-pointer hover:bg-black/60 transition" onClick={()=>{navigator.clipboard.writeText(settings.cardNum); showNotify('شماره کارت کپی شد')}}><p className="opacity-70 text-xs mb-1">شماره کارت (لمس برای کپی):</p><div className="font-mono text-lg tracking-widest select-all dir-ltr">{settings.cardNum}</div><p className="text-[10px] opacity-70 mt-1">{settings.cardOwner}</p></div><input placeholder="نام و نام خانوادگی" className="input-box" onChange={e=>setData({...data, name: e.target.value})}/><input placeholder="شماره موبایل" type="tel" className="input-box" onChange={e=>setData({...data, phone: e.target.value})}/><input placeholder="کد پیگیری تراکنش" className="input-box border-[#D4AF37]" onChange={e=>setData({...data, trackId: e.target.value})}/></div><button onClick={submit} disabled={loading} className="btn-gold shadow-lg shadow-yellow-500/20">{loading ? '...' : 'ثبت نهایی'}</button></div>;
         }
 
         function StaffLogin({ staffList, setView, showNotify }) {
@@ -238,7 +295,7 @@
             );
         }
 
-        function StaffPanel({ allAppts, settings, actions, setView, showNotify }) {
+        function StaffPanel({ allAppts, settings, uiConfig, actions, setView, showNotify }) {
             const initialStaff = JSON.parse(localStorage.getItem('staff'));
             const [staff, setStaff] = useState(initialStaff);
             const [tab, setTab] = useState('appts'); 
@@ -256,8 +313,14 @@
             const [cardNum, setCardNum] = useState(settings.cardNum);
             const [cardOwner, setCardOwner] = useState(settings.cardOwner);
             
+            // UI Settings (Only for s1)
+            const [uiFont, setUiFont] = useState(uiConfig.font);
+            const [uiColor, setUiColor] = useState(uiConfig.color);
+            const [uiSize, setUiSize] = useState(uiConfig.fontSize);
+
             // History State
             const [filterDate, setFilterDate] = useState('');
+            const [filterBarber, setFilterBarber] = useState(''); // فیلتر جدید
 
             const myAppts = allAppts.filter(a => a.staffId === staff.id);
             const formatMoney = (n) => new Intl.NumberFormat('fa-IR').format(n);
@@ -269,15 +332,16 @@
             const addService = async () => { if(!newSrvName || !newSrvPrice) return showNotify('الزامیست', 'error'); const services = [...(staff.services || []), {name: newSrvName, price: parseInt(newSrvPrice)}]; await updateStaffData({ services }); showNotify('اضافه شد'); setNewSrvName(''); setNewSrvPrice(''); };
             const removeService = async (idx) => { const services = [...(staff.services || [])]; services.splice(idx, 1); await updateStaffData({ services }); };
             
-            const savePaymentSettings = async () => {
-                await actions.updateSettings({ cardNum, cardOwner });
-                showNotify('تنظیمات درگاه بروز شد');
-            };
+            const savePaymentSettings = async () => { await actions.updateSettings({ cardNum, cardOwner }); showNotify('تنظیمات درگاه بروز شد'); };
+            const saveUISettings = async () => { await actions.updateUI({ font: uiFont, color: uiColor, fontSize: uiSize }); showNotify('ظاهر برنامه تغییر کرد'); };
+            const completeOrder = async (id) => { await actions.updateAppointmentStatus(id, 'COMPLETED'); showNotify('سفارش تکمیل شد'); };
 
             const historyData = useMemo(() => {
-                if (!filterDate) return allAppts;
-                return allAppts.filter(a => a.date === filterDate);
-            }, [allAppts, filterDate]);
+                let filtered = allAppts;
+                if (filterDate) filtered = filtered.filter(a => a.date === filterDate);
+                if (filterBarber) filtered = filtered.filter(a => a.staffName.includes(filterBarber));
+                return filtered;
+            }, [allAppts, filterDate, filterBarber]);
             const totalIncome = historyData.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
 
             return (
@@ -285,12 +349,20 @@
                     <div className="glass p-4 flex justify-between items-center"><div className="font-bold text-[#D4AF37]">{staff.name}</div><button onClick={()=>setView('home')} className="text-red-400 text-xs border border-red-500/50 px-3 py-1 rounded hover:bg-red-500/20">خروج</button></div>
                     
                     <div className="flex bg-black/40 p-1 rounded-lg overflow-x-auto gap-1">
-                        {['appts','schedule','services','profile'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-md transition ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400 hover:bg-white/5'}`}>{t==='appts'?'نوبت‌ها':t==='schedule'?'تایم':t==='services'?'خدمات':'پروفایل'}</button>))}
-                        {isDefaultBarber && <button onClick={()=>setTab('history')} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-md transition ${tab==='history' ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400 hover:bg-white/5'}`}>تاریخچه</button>}
-                        {isDefaultBarber && <button onClick={()=>setTab('payment')} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-md transition ${tab==='payment' ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400 hover:bg-white/5'}`}>درگاه</button>}
+                        {['appts','schedule','services','profile'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-md transition ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'hover:bg-white/5'}`}>{t==='appts'?'نوبت‌ها':t==='schedule'?'تایم':t==='services'?'خدمات':'پروفایل'}</button>))}
+                        {isDefaultBarber && <button onClick={()=>setTab('history')} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-md transition ${tab==='history' ? 'bg-[#D4AF37] text-black font-bold' : 'hover:bg-white/5'}`}>تاریخچه</button>}
+                        {isDefaultBarber && <button onClick={()=>setTab('settings')} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-md transition ${tab==='settings' ? 'bg-[#D4AF37] text-black font-bold' : 'hover:bg-white/5'}`}>تنظیمات</button>}
                     </div>
                     
-                    {tab === 'appts' && <div className="space-y-3">{myAppts.length === 0 ? <p className="text-center text-zinc-400 py-10 glass">نوبتی نیست</p> : myAppts.map((a, i) => (<div key={i} className="glass p-4 border-r-4 border-r-[#D4AF37]"><div className="flex justify-between font-bold"><span>{a.name}</span><span>{a.time}</span></div><div className="text-xs text-zinc-300 mt-1">{a.service} - {a.date}</div><div className="text-xs bg-white/10 p-2 rounded mt-2 text-center text-green-400 flex justify-between"><span>کد: {a.trackId}</span><span>{a.phone}</span></div></div>))}</div>}
+                    {tab === 'appts' && <div className="space-y-3">{myAppts.length === 0 ? <p className="text-center opacity-60 py-10 glass">نوبتی نیست</p> : myAppts.map((a, i) => (
+                        <div key={i} className={`glass p-4 border-r-4 ${a.status === 'COMPLETED' ? 'border-green-500 opacity-70' : 'border-r-[#D4AF37]'}`}>
+                            <div className="flex justify-between font-bold"><span>{a.name}</span><span>{a.time}</span></div>
+                            <div className="text-xs opacity-70 mt-1">{a.service} - {a.date}</div>
+                            <div className="text-xs bg-white/10 p-2 rounded mt-2 text-center text-green-400 flex justify-between"><span>کد: {a.trackId}</span><span>{a.phone}</span></div>
+                            {a.status !== 'COMPLETED' && <button onClick={()=>completeOrder(a.id)} className="w-full mt-3 bg-green-600/20 text-green-400 py-2 rounded text-xs border border-green-600/50">✓ تایید انجام و دریافت وجه</button>}
+                            {a.status === 'COMPLETED' && <div className="text-center text-xs text-green-500 mt-2 font-bold">تکمیل شده</div>}
+                        </div>))}
+                    </div>}
                     
                     {tab === 'schedule' && <div className="space-y-4"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">ثبت تایم خالی</h3><div className="flex gap-2"><input type="date" className="input-box flex-1" onChange={e=>setNewDate(e.target.value)} /><input type="time" className="input-box flex-1" onChange={e=>setNewTime(e.target.value)} /></div><button onClick={addSlot} className="btn-gold py-2 text-sm">افزودن تایم</button></div><div className="space-y-2">{(staff.slots || []).map((s, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><span>{s.date} - {s.time}</span><button onClick={()=>removeSlot(i)} className="text-red-400 text-xs">حذف</button></div>))}</div></div>}
                     
@@ -298,19 +370,36 @@
                     
                     {tab === 'profile' && <div className="glass p-6 space-y-4"><h3 className="text-sm font-bold text-center mb-4">ویرایش اطلاعات من</h3><input placeholder="نام" className="input-box" value={editName} onChange={e=>setEditName(e.target.value)} /><input placeholder="PIN" className="input-box" value={editPin} onChange={e=>setEditPin(e.target.value)} /><input placeholder="لینک عکس" className="input-box" value={editImg} onChange={e=>setEditImg(e.target.value)} /><button onClick={()=>updateProfile({name:editName, pin:editPin, img:editImg})} className="btn-gold">ذخیره تغییرات</button></div>}
 
-                    {tab === 'payment' && isDefaultBarber && (
-                        <div className="glass p-6 space-y-4 animate-fade-in">
-                            <h3 className="text-center font-bold text-[#D4AF37] border-b border-white/10 pb-2">تنظیمات درگاه پرداخت</h3>
-                            <p className="text-xs text-zinc-300 text-center mb-4">این اطلاعات برای همه مشتریان نمایش داده می‌شود</p>
-                            <div>
-                                <label className="text-xs text-zinc-400 block mb-1">شماره کارت (۱۶ رقم)</label>
-                                <input className="input-box dir-ltr font-mono tracking-widest" value={cardNum} onChange={e=>setCardNum(e.target.value)} />
+                    {tab === 'settings' && isDefaultBarber && (
+                        <div className="space-y-4 animate-fade-in">
+                            <div className="glass p-6 space-y-4">
+                                <h3 className="text-center font-bold text-[#D4AF37] border-b border-white/10 pb-2">تنظیمات درگاه</h3>
+                                <div><label className="text-xs opacity-70 block mb-1">شماره کارت</label><input className="input-box dir-ltr font-mono tracking-widest" value={cardNum} onChange={e=>setCardNum(e.target.value)} /></div>
+                                <div><label className="text-xs opacity-70 block mb-1">صاحب کارت</label><input className="input-box" value={cardOwner} onChange={e=>setCardOwner(e.target.value)} /></div>
+                                <button onClick={savePaymentSettings} className="btn-gold mt-2">ذخیره درگاه</button>
                             </div>
-                            <div>
-                                <label className="text-xs text-zinc-400 block mb-1">نام صاحب کارت</label>
-                                <input className="input-box" value={cardOwner} onChange={e=>setCardOwner(e.target.value)} />
+                            
+                            <div className="glass p-6 space-y-4">
+                                <h3 className="text-center font-bold text-[#D4AF37] border-b border-white/10 pb-2">تنظیمات ظاهر (UI)</h3>
+                                <div>
+                                    <label className="text-xs opacity-70 block mb-1">فونت کل برنامه</label>
+                                    <select className="input-box bg-black" value={uiFont} onChange={e=>setUiFont(e.target.value)}>
+                                        <option value="font-vazir">وزیر (پیش‌فرض)</option>
+                                        <option value="font-samim">صمیم</option>
+                                        <option value="font-shabnam">شبنم</option>
+                                        <option value="font-tahoma">تاهوما</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs opacity-70 block mb-1">رنگ نوشته‌ها</label>
+                                    <input type="color" className="w-full h-10 rounded cursor-pointer" value={uiColor} onChange={e=>setUiColor(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-xs opacity-70 block mb-1">سایز نوشته‌ها ({uiSize})</label>
+                                    <input type="range" min="12" max="24" className="w-full accent-[#D4AF37]" value={parseInt(uiSize)} onChange={e=>setUiSize(e.target.value + 'px')} />
+                                </div>
+                                <button onClick={saveUISettings} className="btn-gold mt-2">ذخیره ظاهر</button>
                             </div>
-                            <button onClick={savePaymentSettings} className="btn-gold mt-2">ذخیره تنظیمات درگاه</button>
                         </div>
                     )}
 
@@ -318,22 +407,25 @@
                         <div className="space-y-4 animate-fade-in">
                             <div className="glass p-4">
                                 <h3 className="text-sm font-bold mb-3 text-[#D4AF37]">گزارشات و تاریخچه</h3>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <span className="text-xs text-zinc-300">فیلتر تاریخ:</span>
-                                    <input type="date" className="input-box flex-1 py-2 text-sm mb-0" onChange={(e) => setFilterDate(e.target.value)} />
+                                <div className="grid grid-cols-2 gap-2 mb-4">
+                                    <input type="date" className="input-box py-2 text-sm mb-0" onChange={(e) => setFilterDate(e.target.value)} />
+                                    <input placeholder="نام آرایشگر..." className="input-box py-2 text-sm mb-0" onChange={(e) => setFilterBarber(e.target.value)} />
                                 </div>
                                 <div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/10">
-                                    <span className="text-xs text-zinc-300">مجموع درآمد:</span>
+                                    <span className="text-xs opacity-70">مجموع درآمد:</span>
                                     <span className="text-lg font-bold text-green-400">{formatMoney(totalIncome)} ت</span>
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                {historyData.length === 0 ? <p className="text-center text-zinc-400 text-sm py-4">موردی یافت نشد</p> : 
+                                {historyData.length === 0 ? <p className="text-center opacity-60 text-sm py-4">موردی یافت نشد</p> : 
                                 historyData.map((item, idx) => (
                                     <div key={idx} className="glass p-3 text-sm border-l-4 border-l-zinc-500">
                                         <div className="flex justify-between font-bold mb-1"><span>{item.clientName || item.name}</span><span className="text-[#D4AF37]">{formatMoney(item.price)}</span></div>
-                                        <div className="text-xs text-zinc-400 flex justify-between"><span>{item.service}</span><span>آرایشگر: {item.staffName}</span></div>
-                                        <div className="text-[10px] text-zinc-500 mt-1 text-left">{item.date} | کد: {item.trackId}</div>
+                                        <div className="text-xs opacity-70 flex justify-between"><span>{item.service}</span><span>آرایشگر: {item.staffName}</span></div>
+                                        <div className="text-[10px] opacity-60 mt-1 text-left flex justify-between">
+                                            <span>{item.date}</span>
+                                            <span>کد: {item.trackId}</span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -359,7 +451,7 @@
 
         function QRView() {
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
-            return <div className="h-[60vh] flex flex-col items-center justify-center text-center"><div className="bg-white p-3 rounded-xl mb-4"><img src={qrUrl} alt="QR" width="200"/></div><p className="text-xs text-zinc-300">برای ورود اسکن کنید</p></div>;
+            return <div className="h-[60vh] flex flex-col items-center justify-center text-center"><div className="bg-white p-3 rounded-xl mb-4"><img src={qrUrl} alt="QR" width="200"/></div><p className="text-xs text-zinc-500">برای ورود اسکن کنید</p></div>;
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
