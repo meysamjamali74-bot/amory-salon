@@ -365,7 +365,7 @@
             const formatMoney = (n) => new Intl.NumberFormat('fa-IR').format(n);
 
             const updateMe = async () => { await actions.updateStaff(staff.id, {name:editName, pin:editPin}); showNotify('ذخیره شد'); };
-            const addSlot = async () => { if(!newDate) return; const slots = [...(me.slots||[]), {date:newDate, time:newTime}]; await actions.updateStaff(staff.id, {slots}); };
+            const addSlot = async () => { if(!newDate || !newTime) return; const slots = [...(me.slots||[]), {date:newDate, time:newTime}]; await actions.updateStaff(staff.id, {slots}); };
             const removeSlot = async (i) => { const s = [...me.slots]; s.splice(i,1); await actions.updateStaff(staff.id, {slots:s}); };
             const addSrv = async () => { if(!newSrvName) return; const s = [...(me.services||[]), {name:newSrvName, price:Number(newSrvPrice)}]; await actions.updateStaff(staff.id, {services:s}); };
             const removeSrv = async (i) => { const s = [...me.services]; s.splice(i,1); await actions.updateStaff(staff.id, {services:s}); };
