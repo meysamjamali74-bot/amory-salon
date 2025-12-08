@@ -30,7 +30,6 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- 1. تنظیمات ---
         const firebaseConfig = {
             apiKey: "AIzaSyC0O6xabLpdmh5_dGS-lJc-N_QqQ95_qCU",
             authDomain: "amory-da8ce.firebaseapp.com",
@@ -43,7 +42,6 @@
         const BANK_INFO = { number: "6037997123456789", owner: "سالن زیبایی آموری" };
         const APP_ID = "amory_final_v3";
 
-        // راه‌اندازی امن فایربیس
         let db = null, auth = null;
         try {
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -53,12 +51,11 @@
 
         const { useState, useEffect } = React;
 
-        // --- هوک مدیریت داده (آفلاین/آنلاین) ---
         const useDataManager = () => {
-            const [mode, setMode] = useState('loading'); // loading, online, offline
+            const [mode, setMode] = useState('loading'); 
             const [data, setData] = useState({ staff: [], appointments: [] });
+            const [errorMessage, setErrorMessage] = useState(''); // برای نمایش دلیل خطا
             
-            // داده‌های پیش‌فرض درخواستی
             const defaultStaff = [
                 { id: 's1', name: 'پیش‌فرض ۱', pin: '1111', img: '', services: [{name:'اصلاح', price:200000}], slots: [] },
                 { id: 's2', name: 'پیش‌فرض ۲', pin: '2222', img: '', services: [{name:'اصلاح', price:200000}], slots: [] },
@@ -68,15 +65,14 @@
             useEffect(() => {
                 const init = async () => {
                     try {
-                        // تلاش برای اتصال به سرور (با تایم‌اوت ۳ ثانیه)
-                        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 3000));
+                        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("اتصال زمان‌بر شد (VPN را چک کنید)")), 5000));
                         await Promise.race([auth.signInAnonymously(), timeout]);
                         
                         setMode('online');
-                        // لود زنده از فایربیس
+                        setErrorMessage(''); // پاک کردن خطا در صورت موفقیت
+
                         db.collection('artifacts').doc(APP_ID).collection('staff').onSnapshot(snap => {
                             if(snap.empty) {
-                                // سید کردن داده اولیه
                                 defaultStaff.forEach(s => db.collection('artifacts').doc(APP_ID).collection('staff').doc(s.id).set(s));
                             } else {
                                 setData(prev => ({ ...prev, staff: snap.docs.map(d => ({id:d.id, ...d.data()})) }));
@@ -88,8 +84,15 @@
 
                     } catch (e) {
                         console.warn("Switching to Offline Mode:", e);
+                        // تشخیص نوع خطا برای نمایش به کاربر
+                        let msg = "حالت آفلاین";
+                        if (e.code === 'auth/network-request-failed') msg = "آفلاین: مشکل اینترنت یا فیلترشکن";
+                        else if (e.code === 'auth/unauthorized-domain') msg = "آفلاین: دامنه در فایربیس مجاز نیست";
+                        else if (e.message) msg = `آفلاین: ${e.message}`;
+                        
+                        setErrorMessage(msg);
                         setMode('offline');
-                        // لود از حافظه محلی
+                        
                         const localStaff = JSON.parse(localStorage.getItem('amory_staff')) || defaultStaff;
                         const localAppts = JSON.parse(localStorage.getItem('amory_appts')) || [];
                         setData({ staff: localStaff, appointments: localAppts });
@@ -99,7 +102,6 @@
                 init();
             }, []);
 
-            // توابع تغییر داده (سازگار با هر دو حالت)
             const actions = {
                 addAppointment: async (appt) => {
                     if (mode === 'online') await db.collection('artifacts').doc(APP_ID).collection('appointments').add(appt);
@@ -135,12 +137,11 @@
                 }
             };
 
-            return { mode, data, actions };
+            return { mode, data, actions, errorMessage };
         };
 
-        // --- کامپوننت اصلی ---
         function App() {
-            const { mode, data, actions } = useDataManager();
+            const { mode, data, actions, errorMessage } = useDataManager();
             const [view, setView] = useState('home');
             const [notify, setNotify] = useState(null);
 
@@ -156,7 +157,9 @@
                     <div className="sticky top-0 z-50 bg-black/90 p-4 border-b border-white/10 flex justify-between items-center mb-6 shadow-xl">
                         <div>
                             <h1 className="text-xl font-bold text-[#D4AF37] tracking-widest cursor-pointer" onClick={()=>setView('home')}>AMORY</h1>
-                            <div className="text-[10px] text-zinc-500">{mode === 'online' ? '● آنلاین' : '○ آفلاین (حافظه داخلی)'}</div>
+                            <div className="text-[10px] text-zinc-500">
+                                {mode === 'online' ? <span className="text-green-500">● آنلاین</span> : <span className="text-red-400">○ {errorMessage || 'آفلاین'}</span>}
+                            </div>
                         </div>
                         {view !== 'home' && <button onClick={() => setView('home')} className="text-sm text-zinc-400">خانه</button>}
                     </div>
@@ -187,7 +190,6 @@
             );
         }
 
-        // --- رزرو مشتری ---
         function BookingProcess({ staffList, actions, setView, showNotify }) {
             const [step, setStep] = useState(1);
             const [bookingData, setBookingData] = useState({});
@@ -202,7 +204,6 @@
                     status: 'PAID_PENDING' 
                 });
                 
-                // حذف تایم از لیست آرایشگر
                 const staff = staffList.find(s => s.id === bookingData.staffId);
                 const newSlots = (staff.slots || []).filter(s => !(s.date === bookingData.date && s.time === bookingData.time));
                 await actions.updateStaff(staff.id, { slots: newSlots });
@@ -231,7 +232,6 @@
             if(step===4) return <div className="space-y-4"><div onClick={()=>setStep(3)} className="text-xs mb-2 cursor-pointer text-zinc-500">بازگشت</div><div className="glass p-5 text-center"><p className="text-xs text-zinc-400">مبلغ قابل پرداخت</p><p className="text-2xl font-bold text-[#D4AF37] mb-4">{formatMoney(bookingData.price)} تومان</p><div className="bg-zinc-800 p-3 rounded-lg mb-4 text-sm font-mono select-all border border-zinc-700" onClick={()=>navigator.clipboard.writeText(BANK_INFO.number)}>{BANK_INFO.number}<br/><span className="text-[10px] text-zinc-500 font-sans">{BANK_INFO.owner}</span></div><input placeholder="نام و نام خانوادگی" className="input-box" onChange={e=>setBookingData({...bookingData, name: e.target.value})}/><input placeholder="شماره موبایل" type="tel" className="input-box" onChange={e=>setBookingData({...bookingData, phone: e.target.value})}/><input placeholder="کد پیگیری تراکنش" className="input-box border-[#D4AF37]" onChange={e=>setBookingData({...bookingData, trackId: e.target.value})}/></div><button onClick={submit} className="btn-gold">ثبت نهایی</button></div>;
         }
 
-        // --- لاگین ---
         function StaffLogin({ staffList, setView, showNotify }) {
             const [pin, setPin] = useState('');
             const login = () => {
@@ -245,7 +245,6 @@
             );
         }
 
-        // --- پنل مدیریت کل ---
         function AdminPanel({ staffList, actions, setView, showNotify }) {
             const [newStaffName, setNewStaffName] = useState('');
             const [newStaffPin, setNewStaffPin] = useState('');
@@ -265,65 +264,30 @@
             );
         }
 
-        // --- پنل پرسنل ---
         function StaffPanel({ appts, actions, setView, showNotify }) {
             const initialStaff = JSON.parse(localStorage.getItem('staff'));
             const [staff, setStaff] = useState(initialStaff);
             const [tab, setTab] = useState('appts'); 
-            
-            // State for edits
             const [newDate, setNewDate] = useState('');
             const [newTime, setNewTime] = useState('');
             const [newSrvName, setNewSrvName] = useState('');
             const [newSrvPrice, setNewSrvPrice] = useState('');
 
-            // فیلتر نوبت‌های مربوط به این آرایشگر
             const myAppts = appts.filter(a => a.staffId === staff.id);
 
-            // توابع کمکی
-            const updateStaffData = async (newData) => {
-                await actions.updateStaff(staff.id, newData);
-                setStaff({...staff, ...newData});
-                localStorage.setItem('staff', JSON.stringify({...staff, ...newData}));
-            }
-
-            const addSlot = async () => {
-                if(!newDate || !newTime) return showNotify('تاریخ و ساعت الزامیست', 'error');
-                const slots = [...(staff.slots || []), {date: newDate, time: newTime}];
-                await updateStaffData({ slots });
-                showNotify('تایم اضافه شد');
-            };
-
-            const removeSlot = async (idx) => {
-                const slots = [...(staff.slots || [])];
-                slots.splice(idx, 1);
-                await updateStaffData({ slots });
-            };
-
-            const addService = async () => {
-                if(!newSrvName || !newSrvPrice) return showNotify('نام و قیمت الزامیست', 'error');
-                const services = [...(staff.services || []), {name: newSrvName, price: parseInt(newSrvPrice)}];
-                await updateStaffData({ services });
-                showNotify('خدمت اضافه شد'); setNewSrvName(''); setNewSrvPrice('');
-            };
-
-            const removeService = async (idx) => {
-                const services = [...(staff.services || [])];
-                services.splice(idx, 1);
-                await updateStaffData({ services });
-            };
+            const updateStaffData = async (newData) => { await actions.updateStaff(staff.id, newData); setStaff({...staff, ...newData}); localStorage.setItem('staff', JSON.stringify({...staff, ...newData})); }
+            const addSlot = async () => { if(!newDate || !newTime) return showNotify('الزامیست', 'error'); const slots = [...(staff.slots || []), {date: newDate, time: newTime}]; await updateStaffData({ slots }); showNotify('اضافه شد'); };
+            const removeSlot = async (idx) => { const slots = [...(staff.slots || [])]; slots.splice(idx, 1); await updateStaffData({ slots }); };
+            const addService = async () => { if(!newSrvName || !newSrvPrice) return showNotify('الزامیست', 'error'); const services = [...(staff.services || []), {name: newSrvName, price: parseInt(newSrvPrice)}]; await updateStaffData({ services }); showNotify('اضافه شد'); setNewSrvName(''); setNewSrvPrice(''); };
+            const removeService = async (idx) => { const services = [...(staff.services || [])]; services.splice(idx, 1); await updateStaffData({ services }); };
 
             return (
                 <div className="space-y-4">
                     <div className="glass p-4 flex justify-between items-center"><div className="font-bold text-[#D4AF37]">{staff.name}</div><button onClick={()=>setView('home')} className="text-red-400 text-xs">خروج</button></div>
                     <div className="flex bg-zinc-900 p-1 rounded-lg">{['appts','schedule','services','profile'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs rounded ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400'}`}>{t==='appts'?'نوبت':t==='schedule'?'تایم':t==='services'?'خدمات':'پروفایل'}</button>))}</div>
-                    
                     {tab === 'appts' && <div className="space-y-3">{myAppts.length === 0 ? <p className="text-center text-zinc-600 py-10">نوبتی نیست</p> : myAppts.map((a, i) => (<div key={i} className="glass p-4 border-r-4 border-r-[#D4AF37]"><div className="flex justify-between font-bold"><span>{a.name}</span><span>{a.time}</span></div><div className="text-xs text-zinc-400 mt-1">{a.service} - {a.date}</div><div className="text-xs bg-zinc-800 p-1 rounded mt-2 text-center text-green-400">کد: {a.trackId}</div></div>))}</div>}
-                    
                     {tab === 'schedule' && <div className="space-y-4"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">ثبت تایم خالی</h3><input type="date" className="input-box" onChange={e=>setNewDate(e.target.value)} /><input type="time" className="input-box" onChange={e=>setNewTime(e.target.value)} /><button onClick={addSlot} className="btn-gold py-2 text-sm">افزودن تایم</button></div><div className="space-y-2">{(staff.slots || []).map((s, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><span>{s.date} - {s.time}</span><button onClick={()=>removeSlot(i)} className="text-red-500 text-xs">حذف</button></div>))}</div></div>}
-                    
                     {tab === 'services' && <div className="space-y-4"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">افزودن خدمت</h3><input placeholder="نام خدمت" className="input-box" value={newSrvName} onChange={e=>setNewSrvName(e.target.value)} /><input type="number" placeholder="قیمت" className="input-box" value={newSrvPrice} onChange={e=>setNewSrvPrice(e.target.value)} /><button onClick={addService} className="btn-gold py-2 text-sm">افزودن</button></div><div className="space-y-2">{(staff.services || []).map((s, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><span>{s.name}</span><button onClick={()=>removeService(i)} className="text-red-500 text-xs">حذف</button></div>))}</div></div>}
-                    
                     {tab === 'profile' && <div className="glass p-4 space-y-3"><h3 className="text-sm font-bold text-center mb-4">ویرایش اطلاعات</h3><input placeholder="نام" className="input-box" value={staff.name} onChange={e=>setStaff({...staff, name: e.target.value})} /><input placeholder="PIN" className="input-box" value={staff.pin} onChange={e=>setStaff({...staff, pin: e.target.value})} /><button onClick={()=>updateStaffData({name:staff.name, pin:staff.pin})} className="btn-gold">ذخیره تغییرات</button></div>}
                 </div>
             );
