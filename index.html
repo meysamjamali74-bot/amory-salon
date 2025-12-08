@@ -5,15 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#000000">
-    <title>AMORY | سیستم جامع سالن</title>
+    <title>AMORY | سیستم جامع مدیریت</title>
     
-    <!-- کتابخانه‌ها -->
+    <!-- 1. کتابخانه‌ها (با لینک‌های پایدار) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <!-- Supabase (لینک اصلاح شده) -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
     <!-- فونت‌ها و آیکون -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -21,7 +23,7 @@
     <style>
         body { font-family: 'Vazirmatn', sans-serif; color: #eee; overflow-x: hidden; margin: 0; background-color: #000; }
         #bg-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-size: cover; background-position: center; transition: background-image 0.8s ease-in-out; filter: brightness(0.25) blur(3px); }
-        .glass { background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .glass { background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
         .glass-header { background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .glass-footer { background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.1); }
         .btn-gold { background: linear-gradient(135deg, #D4AF37 0%, #AA8518 100%); color: black; font-weight: 800; padding: 12px; border-radius: 12px; width: 100%; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); transition: transform 0.2s; }
@@ -45,13 +47,7 @@
     <script type="text/babel">
         // --- تنظیمات Supabase ---
         const SUPABASE_URL = 'https://klbrajeljnqdjburxrto.supabase.co';
-        // کلید Anon که فرستادید جایگزین شد
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsYnJhamVsam5xZGpidXJ4cnRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMTg3NTgsImV4cCI6MjA4MDc5NDc1OH0.qpPOyOnSx0T5i4KiljEfo-tELIESNtIg5si4a1p4bek';
-
-        let supabase = null;
-        try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch(e) { console.error("Supabase Init Error", e); }
 
         const { useState, useEffect, useMemo } = React;
 
@@ -74,12 +70,33 @@
         const useDataManager = () => {
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
+            const [supabase, setSupabase] = useState(null);
             const [data, setData] = useState({ 
                 staff: [], appointments: [], expenses: [], inventory: [],
                 settings: { cardNum: "6037997123456789", cardOwner: "سالن زیبایی آموری" },
                 uiConfig: { font: 'font-vazir', color: '#eeeeee', fontSize: '16px' },
                 commissions: {}
             });
+
+            // Initialize Supabase safely
+            useEffect(() => {
+                const initSupabase = () => {
+                    if (window.supabase && window.supabase.createClient) {
+                        try {
+                            const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                            setSupabase(client);
+                        } catch (e) {
+                            console.error("Supabase client init failed:", e);
+                            setError("خطا در راه‌اندازی دیتابیس.");
+                            setLoading(false);
+                        }
+                    } else {
+                        // Retry if script hasn't loaded yet
+                        setTimeout(initSupabase, 500);
+                    }
+                };
+                initSupabase();
+            }, []);
 
             const defaultStaff = [
                 { id: 's1', name: 'استاد سجاد', pin: '1111', img: '', services: [{name:'گریم', price:3500000}], slots: [] },
@@ -89,12 +106,16 @@
 
             const fetchData = async () => {
                 if (!supabase) return;
+                setLoading(true);
                 
                 try {
-                    const { error: staffErr, data: staffData } = await supabase.from('staff').select('*');
+                    // Check connection
+                    const { data: staffData, error: staffErr } = await supabase.from('staff').select('*');
+                    
                     if (staffErr) throw staffErr;
                     
-                    if (staffData.length === 0) {
+                    if (!staffData || staffData.length === 0) {
+                         // Seed initial data
                         await Promise.all(defaultStaff.map(s => supabase.from('staff').insert(s)));
                     }
 
@@ -127,24 +148,25 @@
                     setLoading(false);
                     setError(null);
 
-                    const channel = supabase.channel('schema-db-changes')
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'staff' }, () => fetchData())
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => fetchData())
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, () => fetchData())
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => fetchData())
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, () => fetchData())
-                        .subscribe();
+                    // Realtime subscriptions
+                    const channels = ['staff', 'appointments', 'config', 'expenses', 'inventory'].map(t => 
+                        supabase.channel(`public:${t}`)
+                            .on('postgres_changes', { event: '*', schema: 'public', table: t }, () => fetchData())
+                            .subscribe()
+                    );
 
-                    return () => supabase.removeChannel(channel);
+                    return () => channels.forEach(c => supabase.removeChannel(c));
 
                 } catch (err) {
                     console.error(err);
-                    setError("خطا در اتصال به سرور (Supabase). اینترنت را چک کنید.");
+                    setError("خطا در دریافت اطلاعات. اتصال اینترنت را بررسی کنید.");
                     setLoading(false);
                 }
             };
 
-            useEffect(() => { fetchData(); }, []);
+            useEffect(() => { 
+                if(supabase) fetchData(); 
+            }, [supabase]);
 
             const actions = {
                 retry: fetchData,
@@ -154,8 +176,27 @@
                 addStaff: async (s) => await supabase.from('staff').insert({...s, id: 's'+Date.now()}),
                 deleteStaff: async (id) => await supabase.from('staff').delete().eq('id', id),
                 addExpense: async (e) => await supabase.from('expenses').insert(e),
-                addInventory: async (i) => await supabase.from('inventory').insert(i),
-                updateInventory: async (id, q) => await supabase.from('inventory').update({qty: q}).eq('id', id),
+                addInventory: async (i) => {
+                     const { data: existing } = await supabase.from('inventory').select('*').eq('name', i.name);
+                     if(existing && existing.length > 0) {
+                         const oldItem = existing[0];
+                         const newQty = (oldItem.qty || 0) + i.qty;
+                         await supabase.from('inventory').update({qty: newQty}).eq('id', oldItem.id);
+                     } else {
+                         await supabase.from('inventory').insert(i);
+                     }
+                },
+                consumeInventory: async (item, consumeQty) => {
+                     const cost = consumeQty * (item.price || 0); // Assuming price is purchase price
+                     await supabase.from('expenses').insert({
+                         title: `مصرف: ${item.name}`,
+                         amount: 0, // In simple mode, cost tracking might be complex, set 0 or estimate
+                         date: new Date().toLocaleDateString('fa-IR'),
+                         category: 'مواد مصرفی'
+                     });
+                     await supabase.from('inventory').update({qty: item.qty - consumeQty}).eq('id', item.id);
+                },
+                updateInventory: async (id, qty) => await supabase.from('inventory').update({qty}).eq('id', id),
                 deleteDoc: async (col, id) => await supabase.from(col).delete().eq('id', id),
                 setConfig: async (type, d) => {
                      const { data } = await supabase.from('config').select('*').eq('id', type);
@@ -192,7 +233,7 @@
                 <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
                     <div className="glass p-8 border border-red-500/50">
                         <i className="ri-wifi-off-line text-4xl text-red-500 mb-4 block"></i>
-                        <h3 className="text-xl font-bold text-white mb-2">عدم اتصال به Supabase</h3>
+                        <h3 className="text-xl font-bold text-white mb-2">مشکل در ارتباط</h3>
                         <p className="text-zinc-400 text-sm mb-6">{error}</p>
                         <button onClick={actions.retry} className="btn-gold">تلاش مجدد</button>
                     </div>
@@ -293,7 +334,7 @@
             const [newStaff, setNewStaff] = useState({name:'', pin:''});
             const [commRates, setCommRates] = useState(data.commissions || {});
             const [filters, setFilters] = useState({start:'', end:'', staff:'all'});
-            const [newItem, setNewItem] = useState({name:'', qty:0, min:5});
+            const [newItem, setNewItem] = useState({name:'', qty:0, min:5, price:0});
             const [newExp, setNewExp] = useState({title:'', amount:0, cat:'عادی'});
 
             const formatMoney = (n) => new Intl.NumberFormat('fa-IR').format(n);
@@ -322,7 +363,7 @@
             }, [data.appointments]);
 
             const addStaff = async () => { if(!newStaff.name) return; await actions.addStaff({ ...newStaff, services:[], slots:[], img:'' }); showNotify('اضافه شد'); setNewStaff({name:'', pin:''}); };
-            const addItem = async () => { if(!newItem.name) return; await actions.addInventory(newItem); showNotify('کالا اضافه شد'); setNewItem({name:'', qty:0, min:5}); };
+            const addItem = async () => { if(!newItem.name) return; await actions.addInventory(newItem); showNotify('کالا اضافه شد'); setNewItem({name:'', qty:0, min:5, price:0}); };
             const addExp = async () => { if(!newExp.title) return; await actions.addExpense({...newExp, date: new Date().toLocaleDateString('fa-IR')}); showNotify('هزینه ثبت شد'); };
             const updateComm = async (staffId, val) => { const newRates = { ...commRates, [staffId]: val }; setCommRates(newRates); };
             const saveComms = async () => { await actions.setConfig('commissions', commRates); showNotify('درصدها ذخیره شد'); };
@@ -341,7 +382,7 @@
 
                     {tab === 'finance' && (<div className="space-y-4 animate-fade-in"><div className="glass p-4"><h3 className="text-sm font-bold mb-3">فیلتر گزارش</h3><div className="grid grid-cols-2 gap-2 mb-2"><input type="text" placeholder="از تاریخ" className="input-box mb-0 text-sm" onChange={e=>setFilters({...filters, start:e.target.value})} /><input type="text" placeholder="تا تاریخ" className="input-box mb-0 text-sm" onChange={e=>setFilters({...filters, end:e.target.value})} /></div><select className="input-box bg-black text-sm" onChange={e=>setFilters({...filters, staff:e.target.value})}><option value="all">همه آرایشگران</option>{data.staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div><div className="grid grid-cols-2 gap-3"><div className="glass p-4 text-center border border-green-500/30"><p className="text-xs text-zinc-400">درآمد ناخالص</p><p className="text-lg font-bold text-green-400">{formatMoney(totalRevenue)}</p></div><div className="glass p-4 text-center border border-red-500/30"><p className="text-xs text-zinc-400">هزینه‌ها</p><p className="text-lg font-bold text-red-400">{formatMoney(totalExpenses)}</p></div><div className="card-stat border-yellow-500/30"><p className="text-xs text-zinc-400">پرداخت پرسنل</p><p className="text-lg font-bold text-yellow-400">{formatMoney(totalCommissionShare)}</p></div><div className="card-stat border-blue-500/30"><p className="text-xs text-zinc-400">سود خالص</p><p className="text-lg font-bold text-blue-400">{formatMoney(netProfit)}</p></div></div><div className="glass p-4 border-t-4 border-t-red-500"><h3 className="text-sm font-bold mb-2">ثبت هزینه جدید</h3><div className="flex gap-2 mb-2"><input placeholder="عنوان" className="input-box flex-1 mb-0" onChange={e=>setNewExp({...newExp, title:e.target.value})} /><input placeholder="مبلغ" className="input-box w-24 mb-0" type="number" onChange={e=>setNewExp({...newExp, amount:Number(e.target.value)})} /></div><button onClick={addExp} className="btn-gold text-sm py-2">ثبت هزینه</button><div className="mt-4 space-y-2 max-h-40 overflow-y-auto">{data.expenses.map((ex,i)=>(<div key={i} className="flex justify-between text-xs border-b border-white/5 pb-1"><span>{ex.title}</span><span className="text-red-400">{formatMoney(ex.amount)}</span></div>))}</div></div></div>)}
 
-                    {tab === 'inventory' && (<div className="space-y-4 animate-fade-in"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">مدیریت موجودی</h3><div className="flex gap-2 mb-2"><input placeholder="نام کالا" className="input-box flex-1 mb-0" value={newItem.name} onChange={e=>setNewItem({...newItem, name:e.target.value})} /><input placeholder="تعداد" className="input-box w-16 mb-0" type="number" value={newItem.qty} onChange={e=>setNewItem({...newItem, qty:Number(e.target.value)})} /></div><button onClick={addItem} className="btn-gold text-sm py-2">افزودن کالا</button></div><div className="space-y-2">{data.inventory.map((item, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{item.name}</div><div className={`text-xs ${item.qty<item.min?'text-red-500 font-bold':'text-zinc-500'}`}>موجودی: {item.qty}</div></div><div className="flex gap-2"><button onClick={()=>actions.updateInventory(item.id, item.qty+1)} className="bg-green-600/30 px-2 rounded">+</button><button onClick={()=>actions.updateInventory(item.id, item.qty-1)} className="bg-red-600/30 px-2 rounded">-</button><button onClick={()=>actions.deleteDoc('inventory', item.id)} className="text-red-500"><i className="ri-delete-bin-line"></i></button></div></div>))}</div></div>)}
+                    {tab === 'inventory' && (<div className="space-y-4 animate-fade-in"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">مدیریت موجودی</h3><div className="flex gap-2 mb-2"><input placeholder="نام کالا" className="input-box flex-1 mb-0" value={newItem.name} onChange={e=>setNewItem({...newItem, name:e.target.value})} /><input placeholder="تعداد" className="input-box w-16 mb-0" type="number" value={newItem.qty} onChange={e=>setNewItem({...newItem, qty:Number(e.target.value)})} /><input placeholder="قیمت خرید" className="input-box w-20 mb-0" type="number" value={newItem.price} onChange={e=>setNewItem({...newItem, price:Number(e.target.value)})} /></div><button onClick={addItem} className="btn-gold text-sm py-2">افزودن کالا (خرید)</button></div><div className="space-y-2">{data.inventory.map((item, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{item.name}</div><div className={`text-xs ${item.qty<item.min?'text-red-500 font-bold':'text-zinc-500'}`}>موجودی: {item.qty} | میانگین خرید: {formatMoney(item.price)}</div></div><div className="flex gap-2"><button onClick={()=>{actions.deleteDoc('inventory', item.id)}} className="text-red-500"><i className="ri-delete-bin-line"></i></button></div></div>))}</div></div>)}
 
                     {tab === 'crm' && (<div className="space-y-4 animate-fade-in"><div className="glass p-4 text-center"><h3 className="text-lg font-bold text-[#D4AF37]">{customers.length}</h3><p className="text-xs text-zinc-400">مشتری ثبت شده</p></div><div className="space-y-2">{customers.map((c, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{c.name}</div><div className="text-xs text-zinc-500">{c.phone}</div></div><div className="text-left"><div className="text-xs bg-white/10 px-2 py-1 rounded mb-1">{c.visits} بازدید</div><div className="text-[10px] text-[#D4AF37]">{formatMoney(c.totalSpent)}</div></div></div>))}</div></div>)}
                 </div>
@@ -357,6 +398,7 @@
             const [editName, setEditName] = useState(staff.name); const [editPin, setEditPin] = useState(staff.pin);
             const [newDate, setNewDate] = useState(''); const [newTime, setNewTime] = useState('');
             const [newSrvName, setNewSrvName] = useState(''); const [newSrvPrice, setNewSrvPrice] = useState('');
+            const [consumeQty, setConsumeQty] = useState(1);
             
             const myAppts = data.appointments.filter(a => a.staffId === staff.id && a.status !== 'COMPLETED');
             const formatMoney = (n) => new Intl.NumberFormat('fa-IR').format(n);
@@ -366,12 +408,6 @@
             const removeSlot = async (i) => { const s = [...me.slots]; s.splice(i,1); await actions.updateStaff(staff.id, {slots:s}); };
             const addSrv = async () => { if(!newSrvName) return; const s = [...(me.services||[]), {name:newSrvName, price:Number(newSrvPrice)}]; await actions.updateStaff(staff.id, {services:s}); };
             const removeSrv = async (i) => { const s = [...me.services]; s.splice(i,1); await actions.updateStaff(staff.id, {services:s}); };
-
-            // History for Staff (Including Commission)
-            const myHistory = useMemo(() => data.appointments.filter(a => a.staffId === staff.id && a.status === 'COMPLETED').sort((a,b)=>b.createdAt.localeCompare(a.createdAt)), [data.appointments, staff.id]);
-            const myTotalIncome = myHistory.reduce((sum, i) => sum + (Number(i.price)||0), 0);
-            const myCommissionRate = Number((data.commissions && data.commissions[staff.id]) || 0);
-            const myCommissionShare = myTotalIncome * (myCommissionRate / 100);
 
             useEffect(()=>{ const s = data.staff.find(x=>x.id===staff.id); if(s) setMe(s); },[data.staff]);
 
@@ -385,9 +421,9 @@
                     {tab === 'appts' && <div className="space-y-3">{myAppts.length===0 ? <p className="text-center opacity-50 py-10 glass">نوبت فعالی ندارید</p> : myAppts.map((a,i) => (<div key={i} className="glass p-4 border-r-4 border-r-[#D4AF37]"><div className="flex justify-between font-bold text-white"><span>{a.clientName}</span><span>{a.time}</span></div><div className="text-xs text-zinc-400 mt-1">{a.serviceName} - {a.date}</div><div className="text-xs bg-white/5 p-2 rounded mt-2 text-center text-green-400 flex justify-between"><span>کد: {a.trackId}</span><span>{a.clientPhone}</span></div><button onClick={()=>{actions.updateAppt(a.id, {status: 'COMPLETED'}); showNotify('بایگانی شد');}} className="w-full mt-3 bg-green-500/10 text-green-400 py-2 rounded text-xs border border-green-500/30">✓ تایید و بایگانی</button></div>))}</div>}
                     {tab === 'schedule' && <div className="space-y-4"><div className="glass p-4"><div className="flex gap-2"><input type="date" className="input-box flex-1 mb-0" onChange={e=>setNewDate(e.target.value)} /><input type="time" className="input-box flex-1 mb-0" onChange={e=>setNewTime(e.target.value)} /></div><button onClick={addSlot} className="btn-gold py-2 text-sm mt-2">افزودن تایم</button></div><div className="space-y-2">{(me.slots||[]).map((s,i)=>(<div key={i} className="glass p-3 flex justify-between items-center text-sm"><span>{s.date} | {s.time}</span><i onClick={()=>removeSlot(i)} className="ri-delete-bin-line text-red-400 cursor-pointer"></i></div>))}</div></div>}
                     {tab === 'services' && <div className="space-y-4"><div className="glass p-4"><input placeholder="نام خدمت" className="input-box" value={newSrvName} onChange={e=>setNewSrvName(e.target.value)} /><input placeholder="قیمت" className="input-box" value={newSrvPrice} onChange={e=>setNewSrvPrice(e.target.value)} /><button onClick={addSrv} className="btn-gold py-2 text-sm">افزودن</button></div><div className="space-y-2">{(me.services||[]).map((s,i)=>(<div key={i} className="glass p-3 flex justify-between items-center text-sm"><span>{s.name} ({formatMoney(s.price)})</span><i onClick={()=>removeSrv(i)} className="ri-delete-bin-line text-red-400 cursor-pointer"></i></div>))}</div></div>}
-                    {tab === 'inventory' && <div className="space-y-2"><p className="text-xs text-zinc-400 text-center mb-2">ثبت مصرف مواد اولیه</p>{data.inventory.map((item, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><span>{item.name} ({item.qty})</span><button onClick={()=>{actions.updateInventory(item.id, item.qty-1); showNotify('ثبت شد')}} className="bg-red-500/20 text-red-400 px-3 py-1 rounded text-xs">مصرف شد -1</button></div>))}</div>}
+                    {tab === 'inventory' && <div className="space-y-2"><p className="text-xs text-zinc-400 text-center mb-2">ثبت مصرف (تبدیل به هزینه)</p>{data.inventory.map((item, i) => (<div key={i} className="glass p-3 flex justify-between items-center"><div><div className="font-bold">{item.name}</div><div className="text-xs opacity-50">موجودی: {item.qty}</div></div><div className="flex items-center gap-1"><button onClick={()=>{actions.consumeInventory(item, 1); showNotify('حواله مصرف ثبت شد')}} className="bg-red-500/20 text-red-400 px-3 py-1 rounded text-xs border border-red-500/40">ثبت مصرف (۱ عدد)</button></div></div>))}</div>}
                     {tab === 'history' && (
-                        <div className="space-y-4 animate-fade-in"><div className="glass p-4 text-center"><h3 className="text-sm font-bold mb-3 text-[#D4AF37]">گزارش عملکرد شما</h3><div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/10 mb-2"><span className="text-xs text-zinc-400">کل کارکرد:</span><span className="text-lg font-bold text-white">{formatMoney(myTotalIncome)} ت</span></div><div className="flex justify-between items-center bg-[#D4AF37]/10 p-3 rounded-lg border border-[#D4AF37]/30"><span className="text-xs text-[#D4AF37]">سهم پورسانت ({myCommissionRate}%):</span><span className="text-lg font-bold text-[#D4AF37]">{formatMoney(myCommissionShare)} ت</span></div></div><div className="space-y-2">{myHistory.map((item, idx) => (<div key={idx} className="glass p-3 text-sm border-l-4 border-l-green-500"><div className="flex justify-between font-bold mb-1"><span>{item.clientName || item.name}</span><span className="text-zinc-400">{formatMoney(item.price)}</span></div><div className="text-xs opacity-70 flex justify-between"><span>{item.service}</span><span>{item.date}</span></div></div>))}</div></div>
+                        <div className="space-y-4 animate-fade-in"><div className="glass p-4 text-center"><h3 className="text-sm font-bold mb-3 text-[#D4AF37]">گزارش عملکرد شما</h3><div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/10 mb-2"><span className="text-xs text-zinc-400">کل کارکرد:</span><span className="text-lg font-bold text-white">{formatMoney(data.appointments.filter(a => a.staffId === staff.id && a.status === 'COMPLETED').reduce((sum, i) => sum + (Number(i.price)||0), 0))} ت</span></div><div className="flex justify-between items-center bg-[#D4AF37]/10 p-3 rounded-lg border border-[#D4AF37]/30"><span className="text-xs text-[#D4AF37]">سهم پورسانت ({data.commissions[staff.id]||0}%):</span><span className="text-lg font-bold text-[#D4AF37]">{formatMoney(data.appointments.filter(a => a.staffId === staff.id && a.status === 'COMPLETED').reduce((sum, i) => sum + (Number(i.price)||0), 0) * ((data.commissions[staff.id]||0)/100))} ت</span></div></div><div className="space-y-2">{data.appointments.filter(a => a.staffId === staff.id && a.status === 'COMPLETED').map((item, idx) => (<div key={idx} className="glass p-3 text-sm border-l-4 border-l-green-500"><div className="flex justify-between font-bold mb-1"><span>{item.clientName || item.name}</span><span className="text-zinc-400">{formatMoney(item.price)}</span></div><div className="text-xs opacity-70 flex justify-between"><span>{item.service}</span><span>{item.date}</span></div></div>))}</div></div>
                     )}
                 </div>
             );
