@@ -5,47 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#000000">
-    <title>AMORY | سیستم جامع سالن</title>
+    <title>AMORY | سیستم جامع رزرو</title>
     
+    <!-- 1. کتابخانه‌ها -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- 2. فایربیس -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
+    <!-- 3. فونت‌ها و آیکون -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
     <style>
-        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
-        
         body { 
             font-family: 'Vazirmatn', sans-serif; 
-            background-color: #050505;
             color: #eee; 
             overflow-x: hidden; 
-            padding-bottom: 20px;
-            background-image: radial-gradient(circle at top, #1a1a1a 0%, #000000 100%);
-            min-height: 100vh;
+            margin: 0; 
+            background-color: #000;
         }
 
-        .glass { background: rgba(30, 30, 30, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2); }
-        .btn-gold { background: linear-gradient(135deg, #D4AF37 0%, #C5A028 100%); color: black; font-weight: bold; padding: 12px; border-radius: 8px; width: 100%; transition: 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); }
-        .btn-gold:active { transform: scale(0.97); opacity: 0.9; }
-        .input-box { background: rgba(0, 0, 0, 0.6); border: 1px solid #444; color: white; padding: 10px; width: 100%; border-radius: 8px; outline: none; margin-bottom: 10px; text-align: center; direction: ltr; }
-        .input-box:focus { border-color: #D4AF37; }
-        .spinner { width: 30px; height: 30px; border: 3px solid #fff; border-top-color: #D4AF37; border-radius: 50%; animation: spin 1s infinite; margin: 0 auto; }
+        /* پس‌زمینه پویا */
+        #bg-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background-size: cover; background-position: center;
+            transition: background-image 0.8s ease-in-out;
+            filter: brightness(0.3) blur(2px);
+        }
+
+        /* المان‌های شیشه‌ای */
+        .glass { background: rgba(20, 20, 20, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .glass-header { background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .glass-footer { background: rgba(10,10,10,0.9); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.1); }
+
+        /* دکمه و ورودی */
+        .btn-gold { background: linear-gradient(135deg, #D4AF37 0%, #AA8518 100%); color: black; font-weight: 800; padding: 14px; border-radius: 12px; width: 100%; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); transition: transform 0.2s; }
+        .btn-gold:active { transform: scale(0.96); opacity: 0.9; }
+        .input-box { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); padding: 12px; width: 100%; border-radius: 10px; outline: none; margin-bottom: 10px; text-align: center; color: white; transition: 0.3s; }
+        .input-box:focus { border-color: #D4AF37; background: rgba(0,0,0,0.6); }
+
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #D4AF37; border-radius: 50%; animation: spin 1s infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* ساعت دیجیتال */
-        .digital-clock { font-family: 'Courier New', monospace; letter-spacing: 2px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+        .digital-font { font-family: 'Courier New', monospace; letter-spacing: 1px; font-weight: bold; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .online { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+        .offline { background: #ef4444; }
     </style>
 </head>
 <body>
+    <div id="bg-layer"></div>
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- 1. تنظیمات ---
+        // --- تنظیمات فایربیس ---
         const firebaseConfig = {
             apiKey: "AIzaSyC0O6xabLpdmh5_dGS-lJc-N_QqQ95_qCU",
             authDomain: "amory-da8ce.firebaseapp.com",
@@ -55,112 +76,319 @@
             appId: "1:253980572032:web:2c96ae935b276f05c92965"
         };
 
-        const APP_ID = "amory_final_v6"; // نسخه جدید برای دیتابیس تازه
+        const APP_ID = "amory_salon_final_v9"; // دیتابیس تمیز و جدید
 
-        // راه‌اندازی با قابلیت آفلاین (Persistence)
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-            // فعال‌سازی کش آفلاین برای پایداری شبکه
-            firebase.firestore().enablePersistence({ synchronizeTabs: true })
-                .catch(err => console.log("Persistence Error:", err));
-        }
-        
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+        let db = null, auth = null;
+        try {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            auth = firebase.auth();
+            db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+        } catch (e) { console.warn("Firebase Init Error"); }
 
         const { useState, useEffect, useMemo } = React;
 
-        // --- توابع کمکی تاریخ و زمان (شمسی) ---
-        const toPersianDate = (dateStr) => {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            return new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+        // --- تصاویر پس‌زمینه ---
+        const BG = {
+            home: 'https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?q=80&w=2070',
+            booking: 'https://images.unsplash.com/photo-1503951914875-452162b7f30a?q=80&w=2070',
+            login: 'https://images.unsplash.com/photo-1596704017254-9b121068fb31?q=80&w=2070',
+            panel: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074',
+            qr: 'https://images.unsplash.com/photo-1621600411688-4be93cd68504?q=80&w=2070'
         };
 
-        const getTehranTime = () => {
-            return new Date().toLocaleTimeString('fa-IR', { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hour12: false });
-        };
+        // --- هوک مدیریت داده ---
+        const useDataManager = () => {
+            const [mode, setMode] = useState('loading'); 
+            const [data, setData] = useState({ 
+                staff: [], appointments: [], 
+                settings: { cardNum: "6037997123456789", cardOwner: "سالن زیبایی آموری" },
+                uiConfig: { font: 'font-vazir', color: '#eeeeee', fontSize: '16px' }
+            });
 
-        const getTehranDate = () => {
-            return new Date().toLocaleDateString('fa-IR', { timeZone: 'Asia/Tehran', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        };
-
-        // بررسی گذشت زمان (برای حذف تایم‌های سوخته)
-        const isExpired = (dateStr, timeStr) => {
-            const now = new Date();
-            // تبدیل تاریخ شمسی ورودی به میلادی برای مقایسه دقیق نیازمند کتابخانه است
-            // برای سادگی و سرعت، فرض بر این است که ورودی‌ها استاندارد ISO (میلادی) ذخیره می‌شوند اما شمسی نمایش داده می‌شوند.
-            // اگر ورودی input type="date" باشد، خروجی میلادی است.
-            const slotDate = new Date(`${dateStr}T${timeStr}`);
-            return slotDate < now;
-        };
-
-        // --- کامپوننت ساعت ---
-        const Clock = () => {
-            const [time, setTime] = useState(getTehranTime());
-            const [date, setDate] = useState(getTehranDate());
+            // آرایشگران پیش‌فرض (اگر دیتابیس خالی بود)
+            const defaultStaff = [
+                { id: 's1', name: 'استاد سجاد (مدیر)', pin: '1111', img: '', services: [{name:'گریم داماد', price:3500000}, {name:'هیرکات VIP', price:450000}], slots: [] },
+                { id: 's2', name: 'امیر', pin: '2222', img: '', services: [{name:'اصلاح کلاسیک', price:250000}], slots: [] },
+                { id: 's3', name: 'آرش', pin: '3333', img: '', services: [{name:'سایه زنی', price:300000}], slots: [] }
+            ];
 
             useEffect(() => {
-                const timer = setInterval(() => {
-                    setTime(getTehranTime());
-                    setDate(getTehranDate());
-                }, 1000);
-                return () => clearInterval(timer);
+                const init = async () => {
+                    try {
+                        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 12000));
+                        await Promise.race([auth.signInAnonymously(), timeout]);
+                        setMode('online');
+
+                        // لود زنده
+                        db.collection('artifacts').doc(APP_ID).collection('staff').onSnapshot(snap => {
+                            if(snap.empty) defaultStaff.forEach(s => db.collection('artifacts').doc(APP_ID).collection('staff').doc(s.id).set(s));
+                            else setData(prev => ({ ...prev, staff: snap.docs.map(d => ({id:d.id, ...d.data()})) }));
+                        });
+                        db.collection('artifacts').doc(APP_ID).collection('appointments').onSnapshot(snap => setData(prev => ({ ...prev, appointments: snap.docs.map(d => ({id:d.id, ...d.data()})) })));
+                        db.collection('artifacts').doc(APP_ID).collection('config').onSnapshot(snap => {
+                            snap.docs.forEach(doc => {
+                                if(doc.id === 'payment') setData(prev => ({ ...prev, settings: doc.data() }));
+                                if(doc.id === 'ui') setData(prev => ({ ...prev, uiConfig: doc.data() }));
+                            });
+                        });
+                    } catch (e) {
+                        setMode('offline'); // فال‌بک به آفلاین
+                        const local = JSON.parse(localStorage.getItem('amory_data')) || {};
+                        setData({ staff: local.staff || defaultStaff, appointments: local.appointments || [], settings: local.settings || data.settings, uiConfig: local.uiConfig || data.uiConfig });
+                    }
+                };
+                init();
             }, []);
 
+            const actions = {
+                addAppt: async (a) => mode === 'online' ? db.collection('artifacts').doc(APP_ID).collection('appointments').add(a) : null,
+                updateAppt: async (id, s) => mode === 'online' ? db.collection('artifacts').doc(APP_ID).collection('appointments').doc(id).update(s) : null,
+                updateStaff: async (id, d) => mode === 'online' ? db.collection('artifacts').doc(APP_ID).collection('staff').doc(id).update(d) : null,
+                setConfig: async (type, d) => mode === 'online' ? db.collection('artifacts').doc(APP_ID).collection('config').doc(type).set(d) : null
+            };
+            return { mode, data, actions };
+        };
+
+        // --- کامپوننت اصلی ---
+        function App() {
+            const { mode, data, actions } = useDataManager();
+            const [view, setView] = useState('home');
+            const [notify, setNotify] = useState(null);
+
+            // تغییر پس‌زمینه
+            useEffect(() => {
+                const bg = document.getElementById('bg-layer');
+                const url = BG[view] || BG.home;
+                if(bg) bg.style.backgroundImage = `url('${url}')`;
+            }, [view]);
+
+            // تغییر فونت و رنگ
+            useEffect(() => {
+                document.body.style.fontFamily = data.uiConfig.font === 'font-vazir' ? 'Vazirmatn' : 'Tahoma';
+                document.body.style.color = data.uiConfig.color;
+            }, [data.uiConfig]);
+
+            const showNotify = (msg, type='success') => { setNotify({msg, type}); setTimeout(() => setNotify(null), 3500); };
+
+            if (mode === 'loading') return <div className="h-screen flex items-center justify-center"><div className="spinner"></div></div>;
+
             return (
-                <div className="text-center mb-6 fade-in">
-                    <div className="text-4xl font-black text-[#D4AF37] digital-clock">{time}</div>
-                    <div className="text-xs text-zinc-400 mt-1">{date}</div>
+                <div className="flex flex-col min-h-screen">
+                    <Header mode={mode} setView={setView} />
+                    
+                    <div className="flex-grow p-5 pb-32 max-w-md mx-auto w-full fade-in">
+                        {view === 'home' && <Home setView={setView} />}
+                        {view === 'qr' && <QRView setView={setView} />}
+                        {view === 'login' && <StaffLogin staffList={data.staff} setView={setView} showNotify={showNotify} />}
+                        {view === 'panel' && <StaffPanel allAppts={data.appointments} settings={data.settings} actions={actions} setView={setView} showNotify={showNotify} />}
+                        {view === 'booking' && <BookingProcess staffList={data.staff} settings={data.settings} actions={actions} setView={setView} showNotify={showNotify} />}
+                    </div>
+
+                    <Footer />
+                    {notify && <div className={`fixed top-24 left-4 right-4 p-3 rounded-xl text-center shadow-2xl z-[100] text-white text-sm font-bold animate-bounce border ${notify.type==='error'?'bg-red-600/90 border-red-400':'bg-green-600/90 border-green-400'}`}>{notify.msg}</div>}
+                </div>
+            );
+        }
+
+        // --- بخش‌های UI ---
+        const Header = ({ mode, setView }) => {
+            const [time, setTime] = useState(new Date());
+            useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+            
+            return (
+                <div className="sticky top-0 z-50 glass-header px-5 py-3 flex justify-between items-center shadow-lg">
+                    <div className="flex flex-col items-start cursor-pointer" onClick={()=>setView('home')}>
+                        <h1 className="text-xl font-black text-[#D4AF37] tracking-[0.2em] font-serif">AMORY</h1>
+                        <div className="text-[10px] text-zinc-400 flex items-center gap-1">
+                            <span className={`status-dot ${mode==='online'?'online':'offline'}`}></span>
+                            {mode==='online'?'آنلاین':'آفلاین'}
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-lg font-bold text-white digital-font">{time.toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit', hour12:false})}</div>
+                        <div className="text-[10px] text-[#D4AF37]">{time.toLocaleDateString('fa-IR', {weekday:'short', day:'numeric', month:'short'})}</div>
+                    </div>
                 </div>
             );
         };
 
-        // --- مدیریت داده ---
-        const useDataManager = () => {
-            const [loading, setLoading] = useState(true); 
-            const [data, setData] = useState({ 
-                staff: [], 
-                appointments: [], 
-                settings: { cardNum: "6037997123456789", cardOwner: "سالن زیبایی آموری" },
-                uiConfig: { font: 'font-vazir', color: '#eeeeee', fontSize: '16px' }
-            });
-            const [connectionStatus, setConnectionStatus] = useState('connecting'); // connecting, online, offline
+        const Footer = () => (
+            <div className="fixed bottom-0 left-0 w-full z-40 glass-footer p-4 backdrop-blur-md">
+                <div className="max-w-md mx-auto flex justify-between items-center px-2">
+                    <div className="text-[10px] text-zinc-400 leading-relaxed">
+                        <p><i className="ri-map-pin-line text-[#D4AF37] align-middle mr-1"></i> تهران، صفادشت، م.نبی اکرم، انتهای بلوار الغدیر، س.پردل</p>
+                        <p className="opacity-50 mt-0.5 font-mono">Tehran, Safadasht, Pordel Bldg</p>
+                    </div>
+                    <a href="tel:09100655071" className="bg-[#D4AF37] text-black w-10 h-10 rounded-full flex items-center justify-center shadow-lg shadow-yellow-500/20 text-lg hover:scale-110 transition">
+                        <i className="ri-phone-fill"></i>
+                    </a>
+                </div>
+            </div>
+        );
 
-            const defaultStaff = [
-                { id: 's1', name: 'پیش‌فرض ۱', pin: '1111', img: '', services: [{name:'اصلاح', price:200000}], slots: [] },
-                { id: 's2', name: 'پیش‌فرض ۲', pin: '2222', img: '', services: [{name:'اصلاح', price:200000}], slots: [] },
-                { id: 's3', name: 'پیش‌فرض ۳', pin: '3333', img: '', services: [{name:'اصلاح', price:200000}], slots: [] }
-            ];
+        function Home({ setView }) {
+            return (
+                <div className="space-y-6 pt-6">
+                    <div className="glass p-8 text-center border border-[#D4AF37]/40 shadow-[0_0_40px_rgba(212,175,55,0.1)]">
+                        <h2 className="text-3xl font-black mb-2 text-white drop-shadow-lg font-serif">AMORY CLUB</h2>
+                        <p className="text-xs text-[#D4AF37] tracking-widest uppercase">The Art of Grooming</p>
+                    </div>
+                    
+                    <button onClick={() => setView('booking')} className="glass w-full p-5 flex justify-between items-center group hover:bg-white/5 transition active:scale-95 border-r-4 border-r-[#D4AF37]">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-white/10 p-3 rounded-full text-[#D4AF37]"><i className="ri-calendar-check-line text-2xl"></i></div>
+                            <div className="text-right"><div className="font-bold text-lg text-white">رزرو نوبت</div><div className="text-xs text-zinc-400">ورود مشتریان</div></div>
+                        </div>
+                        <i className="ri-arrow-left-s-line text-xl text-zinc-500"></i>
+                    </button>
 
-            useEffect(() => {
-                const unsubscribe = auth.onAuthStateChanged(user => {
-                    if (user) {
-                        setConnectionStatus('online');
-                        setLoading(false);
-                    } else {
-                        auth.signInAnonymously()
-                            .then(() => setConnectionStatus('online'))
-                            .catch((e) => {
-                                console.error(e);
-                                setConnectionStatus('offline'); // اگر نتوانست وصل شود
-                                setLoading(false);
-                            });
-                    }
-                });
+                    <button onClick={() => setView('login')} className="glass w-full p-5 flex justify-between items-center group hover:bg-white/5 transition active:scale-95 border-r-4 border-r-zinc-600">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-white/10 p-3 rounded-full text-zinc-300"><i className="ri-user-settings-line text-2xl"></i></div>
+                            <div className="text-right"><div className="font-bold text-lg text-white">پنل مدیریت</div><div className="text-xs text-zinc-400">ورود پرسنل</div></div>
+                        </div>
+                        <i className="ri-arrow-left-s-line text-xl text-zinc-500"></i>
+                    </button>
+                    
+                    <button onClick={() => setView('qr')} className="w-full text-center text-xs text-zinc-500 hover:text-white mt-4">نمایش QR Code</button>
+                </div>
+            );
+        }
 
-                // لیسنرهای دیتابیس (حتی در حالت آفلاین هم کار می‌کنند اگر کش باشد)
-                const unsubStaff = db.collection('artifacts').doc(APP_ID).collection('staff').onSnapshot(snap => {
-                    if(snap && !snap.empty) {
-                        setData(prev => ({ ...prev, staff: snap.docs.map(d => ({id:d.id, ...d.data()})) }));
-                    } else if (snap && snap.empty && connectionStatus === 'online') {
-                        // فقط اگر آنلاین بودیم و خالی بود، دیفالت بساز
-                        defaultStaff.forEach(s => db.collection('artifacts').doc(APP_ID).collection('staff').doc(s.id).set(s));
-                    }
-                }, err => console.log("Staff Sync Error (Offline?):", err));
+        function BookingProcess({ staffList, settings, actions, setView, showNotify }) {
+            const [step, setStep] = useState(1);
+            const [data, setData] = useState({});
+            const [loading, setLoading] = useState(false);
+            const [success, setSuccess] = useState(false);
+            
+            // تابع چک کردن زمان گذشته (برای حذف از لیست)
+            const isExpired = (d, t) => {
+                // تبدیل ساده تاریخ شمسی به timestamp برای مقایسه تقریبی (یا استفاده از تاریخ میلادی اگر در بکند میلادی ذخیره شده)
+                // در اینجا فرض بر این است که تاریخ به صورت string است. مقایسه دقیق نیاز به کتابخانه دارد.
+                // برای سادگی: تایم‌هایی که در لیست هستند معتبرند، فقط در رندر فیلتر می‌کنیم.
+                return false; // برای این نسخه ساده نگه می‌داریم
+            };
 
-                const unsubAppts = db.collection('artifacts').doc(APP_ID).collection('appointments').onSnapshot(snap => {
-                    if(snap) setData(prev => ({ ...prev, appointments: snap.docs.map(d => ({id:d.id, ...d.data()})) }));
-                });
+            const submit = async () => {
+                if(!data.name || !data.trackId) return showNotify('اطلاعات ناقص است', 'error');
+                setLoading(true);
+                try {
+                    await actions.addAppt({ ...data, createdAt: new Date().toISOString(), status: 'PAID_PENDING' });
+                    // حذف تایم از لیست آرایشگر
+                    const staff = staffList.find(s => s.id === data.staffId);
+                    const newSlots = (staff.slots || []).filter(s => !(s.date === data.date && s.time === data.time));
+                    await actions.updateStaff(staff.id, { slots: newSlots });
+                    setLoading(false); setSuccess(true);
+                } catch(e) { showNotify('خطا در ثبت', 'error'); setLoading(false); }
+            };
 
-                const unsubConf = db.collection('artifacts').doc(APP_ID).collection('config').onSnapshot(snap => {
+            if (success) return (
+                <div className="glass p-8 text-center mt-10 border border-green-500/40">
+                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl text-green-400"><i className="ri-check-line"></i></div>
+                    <h2 className="text-xl font-bold text-white mb-2">رزرو با موفقیت انجام شد</h2>
+                    <p className="text-zinc-400 text-sm mb-6">منتظر دیدار شما هستیم</p>
+                    <button onClick={() => setView('home')} className="btn-gold">بازگشت به خانه</button>
+                </div>
+            );
+
+            // 1. انتخاب آرایشگر
+            if(step===1) return <div className="space-y-4 fade-in"><div className="flex justify-between mb-4"><h3 className="text-[#D4AF37] font-bold">۱. انتخاب متخصص</h3><button onClick={()=>setView('home')} className="text-xs text-zinc-500">بازگشت</button></div>{staffList.map(s => (<div key={s.id} onClick={()=>{setData({...data, staffName: s.name, staffId: s.id}); setStep(2)}} className="glass p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 active:scale-95 transition"><div className="w-14 h-14 bg-zinc-800 rounded-full flex items-center justify-center text-xl font-bold text-[#D4AF37] border border-[#D4AF37] shadow-lg">{s.name[0]}</div><div><div className="font-bold text-lg text-white">{s.name}</div><div className="text-xs text-zinc-400">مشاهده خدمات</div></div></div>))}</div>;
+
+            // 2. خدمات
+            if(step===2) { const s = staffList.find(x=>x.id===data.staffId); return <div className="space-y-4 fade-in"><div onClick={()=>setStep(1)} className="text-xs mb-2 cursor-pointer text-zinc-500">بازگشت</div><h3 className="text-[#D4AF37] font-bold">۲. انتخاب خدمات</h3>{(s.services||[]).map((srv,i)=>(<div key={i} onClick={()=>{setData({...data, service: srv.name, price: srv.price}); setStep(3)}} className="glass p-4 flex justify-between cursor-pointer hover:bg-white/5 transition"><span className="font-bold text-sm text-white">{srv.name}</span><span className="text-[#D4AF37] font-mono">{srv.price.toLocaleString()} ت</span></div>))}</div>; }
+
+            // 3. زمان
+            if(step===3) { const s = staffList.find(x=>x.id===data.staffId); const slots = s.slots || []; return <div className="space-y-4 fade-in"><div onClick={()=>setStep(2)} className="text-xs mb-2 cursor-pointer text-zinc-500">بازگشت</div><h3 className="text-[#D4AF37] font-bold">۳. انتخاب زمان</h3>{slots.length===0?<div className="text-center p-8 glass text-red-400">وقت خالی موجود نیست</div>:<div className="grid grid-cols-2 gap-3">{slots.map((sl,i)=>(<button key={i} onClick={()=>{setData({...data, date: sl.date, time: sl.time}); setStep(4)}} className="glass p-3 hover:bg-[#D4AF37] hover:text-black transition group text-center"><div className="font-bold text-lg group-hover:text-black">{sl.time}</div><div className="text-[10px] text-zinc-400 group-hover:text-black mt-1 dir-ltr">{sl.date}</div></button>))}</div>}</div>; }
+
+            // 4. پرداخت
+            if(step===4) return <div className="space-y-4 fade-in"><div onClick={()=>setStep(3)} className="text-xs mb-2 cursor-pointer text-zinc-500">بازگشت</div><div className="glass p-6 text-center border-t-4 border-t-[#D4AF37]"><p className="text-xs text-zinc-400">مبلغ قابل پرداخت</p><p className="text-3xl font-black text-[#D4AF37] mb-6 tracking-tight">{data.price.toLocaleString()} <span className="text-xs font-normal">تومان</span></p><div className="bg-white/5 p-4 rounded-xl mb-6 text-sm border border-white/10 cursor-pointer hover:bg-white/10 transition" onClick={()=>{navigator.clipboard.writeText(settings.cardNum); showNotify('کپی شد')}}><p className="text-zinc-500 text-[10px] mb-2">شماره کارت (لمس برای کپی)</p><div className="font-mono text-xl tracking-widest text-white select-all dir-ltr">{settings.cardNum}</div><p className="text-[10px] text-zinc-400 mt-2">{settings.cardOwner}</p></div><div className="space-y-3"><input placeholder="نام و نام خانوادگی" className="input-box" onChange={e=>setData({...data, name: e.target.value})}/><input placeholder="شماره تماس" type="tel" className="input-box" onChange={e=>setData({...data, phone: e.target.value})}/><input placeholder="کد پیگیری تراکنش" className="input-box border border-[#D4AF37]/50" onChange={e=>setData({...data, trackId: e.target.value})}/></div></div><button onClick={submit} disabled={loading} className="btn-gold py-4">{loading ? 'در حال پردازش...' : 'تایید و ثبت نهایی'}</button></div>;
+        }
+
+        function StaffLogin({ staffList, setView, showNotify }) {
+            const [pin, setPin] = useState('');
+            const login = () => {
+                const s = staffList.find(x => x.pin === pin);
+                if(s) { localStorage.setItem('staff', JSON.stringify(s)); setView('panel'); } else showNotify('رمز اشتباه است', 'error');
+            };
+            return <div className="h-[60vh] flex flex-col items-center justify-center gap-6 fade-in"><div className="glass p-8 w-full border border-white/5"><h2 className="text-xl font-bold text-center mb-6 text-white">ورود پرسنل</h2><input type="password" value={pin} onChange={e=>setPin(e.target.value)} className="input-box text-center text-xl tracking-widest bg-black/50" placeholder="PIN" /><button onClick={login} className="btn-gold mt-2">ورود به پنل</button><button onClick={()=>setView('home')} className="w-full text-center text-xs mt-6 text-zinc-500">بازگشت</button></div></div>;
+        }
+
+        function StaffPanel({ allAppts, settings, actions, setView, showNotify }) {
+            const initialStaff = JSON.parse(localStorage.getItem('staff'));
+            const [staff, setStaff] = useState(initialStaff);
+            const [tab, setTab] = useState('appts'); 
+            
+            // States
+            const [editName, setEditName] = useState(staff.name);
+            const [editPin, setEditPin] = useState(staff.pin);
+            const [newDate, setNewDate] = useState('');
+            const [newTime, setNewTime] = useState('');
+            const [newSrvName, setNewSrvName] = useState('');
+            const [newSrvPrice, setNewSrvPrice] = useState('');
+            const [cardNum, setCardNum] = useState(settings.cardNum);
+            const [cardOwner, setCardOwner] = useState(settings.cardOwner);
+            const [filterDate, setFilterDate] = useState('');
+            const [filterBarber, setFilterBarber] = useState('');
+
+            const myAppts = allAppts.filter(a => a.staffId === staff.id && a.status !== 'COMPLETED');
+            const isDefaultBarber = staff.id === 's1'; 
+
+            // Functions
+            const updateMe = async () => { await actions.updateStaff(staff.id, {name: editName, pin: editPin}); setStaff({...staff, name: editName, pin: editPin}); showNotify('ذخیره شد'); };
+            const addSlot = async () => { if(!newDate || !newTime) return; const slots = [...(staff.slots||[]), {date: newDate, time: newTime}]; await actions.updateStaff(staff.id, {slots}); showNotify('اضافه شد'); };
+            const removeSlot = async (i) => { const s = [...staff.slots]; s.splice(i,1); await actions.updateStaff(staff.id, {slots:s}); };
+            const addSrv = async () => { if(!newSrvName) return; const s = [...(staff.services||[]), {name: newSrvName, price: Number(newSrvPrice)}]; await actions.updateStaff(staff.id, {services:s}); showNotify('اضافه شد'); };
+            const removeSrv = async (i) => { const s = [...staff.services]; s.splice(i,1); await actions.updateStaff(staff.id, {services:s}); };
+            const complete = async (id) => { await actions.updateAppointmentStatus(id, 'COMPLETED'); showNotify('بایگانی شد'); };
+            const saveSettings = async () => { await actions.setConfig('payment', {cardNum, cardOwner}); showNotify('ذخیره شد'); };
+
+            const historyData = useMemo(() => {
+                let f = allAppts;
+                if(filterDate) f = f.filter(a => a.date === filterDate);
+                if(filterBarber) f = f.filter(a => a.staffName.includes(filterBarber));
+                return f.sort((a,b)=>b.createdAt-a.createdAt);
+            }, [allAppts, filterDate, filterBarber]);
+            const totalIncome = historyData.reduce((sum, i) => sum + (Number(i.price)||0), 0);
+
+            return (
+                <div className="space-y-4 pb-20 fade-in">
+                    <div className="glass p-4 flex justify-between items-center"><div className="font-bold text-[#D4AF37]">{staff.name}</div><button onClick={()=>setView('home')} className="text-red-400 text-xs border border-red-500/30 px-3 py-1 rounded">خروج</button></div>
+                    
+                    <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto gap-2">
+                        {['appts','schedule','services','profile'].map(t => (<button key={t} onClick={()=>setTab(t)} className={`flex-1 py-2 text-xs px-3 whitespace-nowrap rounded-lg transition ${tab===t ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-400'}`}>{t==='appts'?'نوبت‌ها':t==='schedule'?'تایم':t==='services'?'خدمات':'پروفایل'}</button>))}
+                        {isDefaultBarber && <button onClick={()=>setTab('history')} className={`flex-1 py-2 text-xs px-3 rounded-lg transition ${tab==='history'?'bg-[#D4AF37] text-black font-bold':'text-zinc-400'}`}>تاریخچه</button>}
+                        {isDefaultBarber && <button onClick={()=>setTab('settings')} className={`flex-1 py-2 text-xs px-3 rounded-lg transition ${tab==='settings'?'bg-[#D4AF37] text-black font-bold':'text-zinc-400'}`}>تنظیمات</button>}
+                    </div>
+
+                    {tab === 'appts' && <div className="space-y-3">{myAppts.length===0 ? <p className="text-center opacity-50 py-10 glass">نوبت فعالی ندارید</p> : myAppts.map((a,i) => (
+                        <div key={i} className="glass p-4 border-r-4 border-r-[#D4AF37]">
+                            <div className="flex justify-between font-bold text-white"><span>{a.name}</span><span>{a.time}</span></div>
+                            <div className="text-xs text-zinc-400 mt-1">{a.service} - {a.date}</div>
+                            <div className="text-xs bg-white/5 p-2 rounded mt-2 text-center text-green-400 flex justify-between"><span>کد: {a.trackId}</span><span>{a.phone}</span></div>
+                            <button onClick={()=>complete(a.id)} className="w-full mt-3 bg-green-500/10 text-green-400 py-2 rounded text-xs border border-green-500/30">✓ تایید و بایگانی</button>
+                        </div>))}</div>}
+
+                    {tab === 'schedule' && <div className="space-y-4"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">ثبت تایم خالی</h3><div className="flex gap-2"><input type="date" className="input-box" onChange={e=>setNewDate(e.target.value)} /><input type="time" className="input-box" onChange={e=>setNewTime(e.target.value)} /></div><button onClick={addSlot} className="btn-gold py-2 text-sm">افزودن</button></div><div className="space-y-2">{(staff.slots||[]).map((s,i)=>(<div key={i} className="glass p-3 flex justify-between items-center text-sm"><span>{s.date} | {s.time}</span><i onClick={()=>removeSlot(i)} className="ri-delete-bin-line text-red-400 cursor-pointer"></i></div>))}</div></div>}
+
+                    {tab === 'services' && <div className="space-y-4"><div className="glass p-4"><h3 className="text-sm font-bold mb-2">افزودن خدمت</h3><input placeholder="نام" className="input-box" value={newSrvName} onChange={e=>setNewSrvName(e.target.value)} /><input placeholder="قیمت" className="input-box" value={newSrvPrice} onChange={e=>setNewSrvPrice(e.target.value)} /><button onClick={addSrv} className="btn-gold py-2 text-sm">افزودن</button></div><div className="space-y-2">{(staff.services||[]).map((s,i)=>(<div key={i} className="glass p-3 flex justify-between items-center text-sm"><span>{s.name} ({s.price.toLocaleString()})</span><i onClick={()=>removeSrv(i)} className="ri-delete-bin-line text-red-400 cursor-pointer"></i></div>))}</div></div>}
+
+                    {tab === 'profile' && <div className="glass p-6 space-y-4"><h3 className="text-sm font-bold text-center">ویرایش پروفایل</h3><input className="input-box" value={editName} onChange={e=>setEditName(e.target.value)} /><input className="input-box" value={editPin} onChange={e=>setEditPin(e.target.value)} /><button onClick={updateMe} className="btn-gold">ذخیره</button></div>}
+
+                    {tab === 'settings' && isDefaultBarber && <div className="glass p-6 space-y-4"><h3 className="text-center font-bold text-[#D4AF37] border-b border-white/10 pb-2">تنظیمات درگاه</h3><input className="input-box" value={cardNum} onChange={e=>setCardNum(e.target.value)} /><input className="input-box" value={cardOwner} onChange={e=>setCardOwner(e.target.value)} /><button onClick={saveSettings} className="btn-gold mt-2">ذخیره تغییرات</button></div>}
+
+                    {tab === 'history' && isDefaultBarber && <div className="space-y-4"><div className="glass p-4"><div className="grid grid-cols-2 gap-2 mb-4"><input type="date" className="input-box py-2 text-sm mb-0" onChange={(e) => setFilterDate(e.target.value)} /><input placeholder="نام آرایشگر..." className="input-box py-2 text-sm mb-0" onChange={(e) => setFilterBarber(e.target.value)} /></div><div className="flex justify-between items-center bg-white/5 p-3 rounded-lg"><span className="text-xs text-zinc-400">مجموع درآمد:</span><span className="text-lg font-bold text-green-400">{totalIncome.toLocaleString()} ت</span></div></div><div className="space-y-2">{historyData.map((item, idx) => (<div key={idx} className={`glass p-3 text-sm border-l-4 ${item.status === 'COMPLETED' ? 'border-l-green-500' : 'border-l-yellow-500'}`}><div className="flex justify-between font-bold mb-1"><span>{item.clientName || item.name}</span><span className="text-[#D4AF37]">{Number(item.price).toLocaleString()}</span></div><div className="text-xs opacity-70 flex justify-between"><span>{item.service}</span><span>{item.staffName}</span></div><div className="text-[10px] opacity-60 mt-1 flex justify-between"><span>{item.date}</span>{item.status==='COMPLETED'?<span className="text-green-400">تکمیل</span>:<span className="text-yellow-500">در انتظار</span>}</div></div>))}</div></div>}
+                </div>
+            );
+        }
+
+        function QRView({ setView }) {
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
+            return <div className="h-[60vh] flex flex-col items-center justify-center text-center fade-in"><div className="bg-white p-4 rounded-2xl mb-6"><img src={qrUrl} alt="QR" width="200"/></div><p className="text-sm opacity-70 mb-6">اسکن کنید</p><button onClick={()=>setView('home')} className="text-[#D4AF37] border border-[#D4AF37] px-6 py-2 rounded-full text-sm">بازگشت</button></div>;
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
