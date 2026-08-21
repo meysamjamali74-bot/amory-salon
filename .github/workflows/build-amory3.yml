@@ -1,0 +1,103 @@
+name: Build AMORY 3 NSIS Installer
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  schema-test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild exact payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find build/payload -name 'part*.b64' | wc -l)" -eq 10
+          mkdir -p staging
+          cat build/payload/part*.b64 | tr -d '\r\n' | base64 -d > staging/payload.zip
+          unzip -t staging/payload.zip
+          unzip -q staging/payload.zip -d staging
+          test "$(cat staging/app/VERSION.txt | tr -d '\r\n')" = "3.0.0"
+      - name: Validate JavaScript
+        run: node --check staging/app/server-mysql.js
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq default-mysql-client
+      - name: Validate schema on MySQL 8.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          mysql -h 127.0.0.1 -uroot < staging/app/database/mysql-schema.sql
+          TABLES=$(mysql -N -s -h 127.0.0.1 -uroot -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='amory' AND table_type='BASE TABLE';")
+          CHECKS=$(mysql -N -s -h 127.0.0.1 -uroot -e "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='amory' AND constraint_type='CHECK';")
+          echo "tables=$TABLES checks=$CHECKS"
+          test "$TABLES" -ge 20
+          test "$CHECKS" -ge 8
+      - name: Reject Persian ENUMs and old bootstrap logic
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re, pathlib, sys
+          schema = pathlib.Path('staging/app/database/mysql-schema.sql').read_text(encoding='utf-8')
+          for m in re.finditer(r'ENUM\s*\((.*?)\)', schema, flags=re.I|re.S):
+              if re.search(r'[\u0600-\u06FF]', m.group(1)):
+                  print('Persian ENUM found:', m.group(0), file=sys.stderr)
+                  sys.exit(1)
+          print('No Persian ENUM values found.')
+          PY
+          ! grep -RniE "bootstrap\.exe|AMORY_3_Setup_Offline_x64\(1\)\.exe|dev\.mysql\.com/get/Downloads" staging/app build/amory3-setup.nsi
+
+  build-windows:
+    needs: schema-test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild exact payload
+        shell: powershell
+        run: |
+          $parts = Get-ChildItem 'build\payload\part*.b64' | Sort-Object Name
+          if ($parts.Count -ne 10) { throw "Expected 10 payload parts, found $($parts.Count)" }
+          New-Item -ItemType Directory -Force staging | Out-Null
+          $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
+          [IO.File]::WriteAllBytes('staging\payload.zip', [Convert]::FromBase64String($b64))
+          Expand-Archive 'staging\payload.zip' -DestinationPath 'staging' -Force
+          if ((Get-Content 'staging\app\VERSION.txt' -Raw).Trim() -ne '3.0.0') { throw 'Wrong payload version' }
+      - name: Bundle Node dependency into application
+        shell: powershell
+        run: |
+          Set-Location staging\app
+          npm install --omit=dev --ignore-scripts --no-audit --no-fund
+          node --check server-mysql.js
+          if (!(Test-Path 'node_modules\mysql2\package.json')) { throw 'mysql2 was not bundled' }
+      - name: Install NSIS compiler on Windows runner
+        shell: powershell
+        run: choco install nsis -y --no-progress
+      - name: Compile genuine NSIS GUI installer
+        shell: powershell
+        run: |
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' /V4 'build\amory3-setup.nsi'
+          if ($LASTEXITCODE -ne 0) { throw "makensis failed with $LASTEXITCODE" }
+          if (!(Test-Path 'AMORY_3_Setup_Offline_x64.exe')) { throw 'Installer not produced' }
+          Get-FileHash 'AMORY_3_Setup_Offline_x64.exe' -Algorithm SHA256 | Format-List
+      - name: Upload genuine installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: AMORY_3_Setup_Offline_x64
+          path: AMORY_3_Setup_Offline_x64.exe
+          if-no-files-found: error
